@@ -1,8 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
+import {
+  outletApi,
+  type OutletApiRecord,
+} from "../../lib/outlet";
 import { initialData, rupiah, type Outlet, type MahjongTable } from "./model";
 import "./workspace.css";
 
@@ -46,9 +56,22 @@ function Badge({
   );
 }
 
-/** Internal frontend-only workspace. All entities share one nonpersistent React state. */
+const mapOutlet = (o: OutletApiRecord): Outlet => ({
+  id: String(o.id),
+  name: o.name,
+  city: o.city,
+  address: o.address,
+  active: Boolean(o.active ?? o.isActive),
+  tableCount: Number(o.tableCount ?? 0),
+  occupiedTableCount: Number(o.occupiedTableCount ?? 0),
+});
+
+/** Outlet management uses the local API; other workspace modules remain demo data. */
 export default function Dashboard() {
   const [data, setData] = useState(initialData);
+  const [remoteOutlets, setRemoteOutlets] = useState<Outlet[]>([]);
+  const [outletLoading, setOutletLoading] = useState(true);
+  const [outletSaving, setOutletSaving] = useState(false);
   const [view, setView] = useState<View>("Dashboard");
   const [outletFilter, setOutletFilter] = useState("all");
   const [query, setQuery] = useState("");
@@ -62,7 +85,34 @@ export default function Dashboard() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
-  const { outlets, tables, transactions } = data;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadOutlets() {
+      try {
+        const records = await outletApi.list();
+        const apiOutlets = records.map(mapOutlet);
+        if (!cancelled) setRemoteOutlets(apiOutlets);
+      } catch (e) {
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : "Gagal memuat outlet.");
+      } finally {
+        if (!cancelled) setOutletLoading(false);
+      }
+    }
+    void loadOutlets();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function refreshOutlets() {
+    const records = await outletApi.list();
+    setRemoteOutlets(records.map(mapOutlet));
+  }
+
+  const outlets = view === "Outlet" ? remoteOutlets : data.outlets;
+  const { tables, transactions } = data;
   const scopedTables = tables.filter(
     (t) => outletFilter === "all" || t.outletId === outletFilter,
   );
@@ -76,21 +126,26 @@ export default function Dashboard() {
   const occupied = scopedTables.filter((t) => t.status === "Digunakan").length;
   const outletName = (id: string) =>
     outlets.find((o) => o.id === id)?.name ?? "Outlet dihapus";
+
   function navigate(next: View) {
+    if (view === "Outlet" || next === "Outlet") setOutletFilter("all");
     setView(next);
     setQuery("");
     setMessage("");
   }
+
   function openEditor(next: NonNullable<typeof editor>) {
     setError("");
     setEditor(next);
     dialog.current?.showModal();
   }
+
   function closeEditor() {
     dialog.current?.close();
     setEditor(null);
   }
-  function save(event: FormEvent<HTMLFormElement>) {
+
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editor) return;
     const fields = new FormData(event.currentTarget);
@@ -126,19 +181,22 @@ export default function Dashboard() {
         setError("Selesaikan penggunaan meja sebelum menonaktifkan outlet.");
         return;
       }
-      const record: Outlet = {
-        id: editor.item?.id ?? crypto.randomUUID(),
-        name,
-        city,
-        address,
-        active,
-      };
-      setData((d) => ({
-        ...d,
-        outlets: editor.item
-          ? d.outlets.map((o) => (o.id === record.id ? record : o))
-          : [...d.outlets, record],
-      }));
+      setOutletSaving(true);
+      setError("");
+      try {
+        const input = { name, city, address, active };
+        if (editor.item) {
+          await outletApi.update(editor.item.id, input);
+        } else {
+          await outletApi.create(input);
+        }
+        await refreshOutlets();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Gagal menyimpan outlet.");
+        setOutletSaving(false);
+        return;
+      }
+      setOutletSaving(false);
     } else {
       const outletId = String(fields.get("outletId"));
       const rate = Number(fields.get("rate"));
@@ -183,26 +241,24 @@ export default function Dashboard() {
           : [...d.tables, record],
       }));
     }
-    setMessage("Perubahan berhasil disimpan di sesi demo.");
+    setMessage(
+      editor.kind === "outlet"
+        ? "Outlet berhasil disimpan."
+        : "Perubahan berhasil disimpan di sesi demo.",
+    );
     closeEditor();
   }
-  function removeOutlet(outlet: Outlet) {
-    if (
-      tables.some((t) => t.outletId === outlet.id) ||
-      transactions.some((t) => t.outletId === outlet.id)
-    ) {
-      setMessage(
-        "Outlet masih memiliki meja atau transaksi. Outlet dapat dinonaktifkan, bukan dihapus.",
-      );
-      return;
+  async function removeOutlet(outlet: Outlet) {
+    if (!window.confirm(`Arsipkan ${outlet.name}?`)) return;
+    setError("");
+    try {
+      await outletApi.archive(outlet.id);
+      await refreshOutlets();
+      if (outletFilter === outlet.id) setOutletFilter("all");
+      setMessage("Outlet berhasil diarsipkan.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mengarsipkan outlet.");
     }
-    if (!window.confirm(`Hapus ${outlet.name}?`)) return;
-    setData((d) => ({
-      ...d,
-      outlets: d.outlets.filter((o) => o.id !== outlet.id),
-    }));
-    if (outletFilter === outlet.id) setOutletFilter("all");
-    setMessage("Outlet berhasil dihapus.");
   }
   function removeTable(table: MahjongTable) {
     if (
@@ -361,7 +417,7 @@ export default function Dashboard() {
               <Icon index={index} />
               {name}
               {name === "Outlet" && (
-                <span className="nav-count">{outlets.length}</span>
+                <span className="nav-count">{remoteOutlets.length}</span>
               )}
             </button>
           ))}
@@ -505,6 +561,16 @@ export default function Dashboard() {
               </button>
             </div>
           )}
+          {error && !editor && (
+            <p className="notice error" role="alert">
+              {error}
+            </p>
+          )}
+          <p className="field-help">
+            {view === "Outlet"
+              ? "Manajemen outlet terhubung ke API lokal. Dashboard, meja, dan laporan masih menggunakan data demo."
+              : "Dashboard, meja, dan laporan masih menggunakan data demo."}
+          </p>
           {(view === "Dashboard" || view === "Laporan pendapatan") && (
             <>
               <div className="stats-grid">
@@ -703,71 +769,64 @@ export default function Dashboard() {
           )}
           {view === "Outlet" && (
             <div className="outlet-grid">
-              {outletRows.map((o, i) => (
-                <article className="panel outlet-card" key={o.id}>
-                  <div className={`outlet-art art-${i % 3}`}>
-                    <span className="art-grid" />
-                    <span className="art-symbol">胡</span>
-                    <span className="art-caption">
-                      MAHJONGHU / {o.city.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="outlet-card-body">
-                    <div className="outlet-card-top">
-                      <span className="eyebrow">{o.city}</span>
-                      <Badge tone={o.active ? "green" : "gray"}>
-                        {o.active ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </div>
-                    <h2>{o.name}</h2>
-                    <p>{o.address}</p>
-                    <div className="outlet-detail">
-                      <span>
-                        <Icon index={2} />
-                        {tables.filter((t) => t.outletId === o.id).length} meja
-                      </span>
-                      <span>
-                        {
-                          tables.filter(
-                            (t) =>
-                              t.outletId === o.id && t.status === "Digunakan",
-                          ).length
-                        }{" "}
-                        digunakan
+              <>
+                {outletLoading && (
+                  <p className="panel empty">Memuat outlet dari API…</p>
+                )}
+                {outletRows.map((o, i) => (
+                  <article className="panel outlet-card" key={o.id}>
+                    <div className={`outlet-art art-${i % 3}`}>
+                      <span className="art-grid" />
+                      <span className="art-symbol">胡</span>
+                      <span className="art-caption">
+                        MAHJONGHU / {o.city.toUpperCase()}
                       </span>
                     </div>
-                    <div className="card-actions">
-                      <button
-                        className="secondary"
-                        onClick={() => openEditor({ kind: "outlet", item: o })}
-                      >
-                        Edit outlet
-                      </button>
-                      <button
-                        className="text-button"
-                        onClick={() => {
-                          setOutletFilter(o.id);
-                          navigate("Meja");
-                        }}
-                      >
-                        Lihat meja ↗
-                      </button>
-                      <button
-                        className="delete-button"
-                        aria-label={`Hapus ${o.name}`}
-                        onClick={() => removeOutlet(o)}
-                      >
-                        Hapus
-                      </button>
+                    <div className="outlet-card-body">
+                      <div className="outlet-card-top">
+                        <span className="eyebrow">{o.city}</span>
+                        <Badge tone={o.active ? "green" : "gray"}>
+                          {o.active ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                      </div>
+                      <h2>{o.name}</h2>
+                      <p>{o.address}</p>
+                      <div className="outlet-detail">
+                        <span>
+                          <Icon index={2} />
+                          {o.tableCount ?? 0} meja
+                        </span>
+                        <span>{o.occupiedTableCount ?? 0} digunakan</span>
+                      </div>
+                      <div className="card-actions">
+                        <button
+                          className="secondary"
+                          onClick={() =>
+                            openEditor({ kind: "outlet", item: o })
+                          }
+                        >
+                          Edit outlet
+                        </button>
+                        <button className="text-button" disabled>
+                          Meja belum terhubung
+                        </button>
+                        <button
+                          className="delete-button"
+                          aria-label={`Hapus ${o.name}`}
+                          onClick={() => removeOutlet(o)}
+                        >
+                          Arsipkan
+                        </button>
+                      </div>
                     </div>
+                  </article>
+                ))}
+                {!outletLoading && !outletRows.length && (
+                  <div className="panel empty">
+                    Tidak ada outlet. Tambahkan outlet baru atau ubah pencarian.
                   </div>
-                </article>
-              ))}
-              {!outletRows.length && (
-                <div className="panel empty">
-                  Tidak ada outlet. Tambahkan outlet baru atau ubah pencarian.
-                </div>
-              )}
+                )}
+              </>
             </div>
           )}
           {view === "Meja" && (
@@ -1014,14 +1073,25 @@ export default function Dashboard() {
               </p>
             )}
             <p className="field-help">
-              Data disimpan selama sesi ini saja, tanpa koneksi backend.
+              {editor.kind === "outlet"
+                ? "Perubahan outlet disimpan melalui API backend lokal."
+                : "Data meja demo hanya tersimpan selama sesi ini."}
             </p>
             <div className="dialog-actions">
-              <button type="button" className="secondary" onClick={closeEditor}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={closeEditor}
+                disabled={outletSaving}
+              >
                 Batal
               </button>
-              <button type="submit" className="primary">
-                Simpan perubahan
+              <button
+                type="submit"
+                className="primary"
+                disabled={editor.kind === "outlet" && outletSaving}
+              >
+                {outletSaving ? "Menyimpan…" : "Simpan perubahan"}
               </button>
             </div>
           </form>

@@ -1,10 +1,12 @@
-/** In-memory outlet record; IDs remain stable when display details change. */
+/** Outlet details are persisted by the local outlet API. */
 export type Outlet = {
   id: string;
   name: string;
   city: string;
   address: string;
   active: boolean;
+  tableCount?: number;
+  occupiedTableCount?: number;
 };
 /** Operational table state, independent from historical paid transactions. */
 export type MahjongTable = {
