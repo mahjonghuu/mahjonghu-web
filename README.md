@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MahjongHu Web
 
-## Getting Started
+Next.js App Router frontend for the MahjongHu mahjong booking business.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 for the public entry page or http://localhost:3000/dashboard for the internal frontend proof of concept.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Dashboard PoC plan and implementation
 
-## Learn More
+1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, outlets, tables, and revenue reports.
+2. Manage outlets with names, cities, addresses, and operational status. Support creation, editing, deletion, and search.
+3. Manage tables per outlet with names, hourly prices, and available/in-use/maintenance status. Support creation, editing, deletion, and outlet filtering.
+4. Derive dashboard metrics and revenue reports from the same data. Include inclusive date-range and outlet filters, paid transaction details, per-outlet revenue, and CSV export.
+5. Keep the PoC entirely client-side using React state. Verify the interaction flows in a browser at desktop and mobile sizes.
 
-To learn more about Next.js, take a look at the following resources:
+All five steps are implemented. Navigation switches views within `/dashboard`; these views are not separate URLs. There are no additional UI or state-management dependencies.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Responsive workspace
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- At widths up to 950px, navigation moves above the content, filters stack, and transaction/table rows become labeled cards. All columns and actions remain accessible without horizontal scrolling.
+- At widths up to 400px, metrics, date fields, and record details use a single column. Larger mobile/tablet screens use two columns where space permits.
+- Long outlet names and addresses wrap inside their containers. Native inputs can shrink to fit, use 16px text on mobile to avoid focus-triggered iOS zoom, and dialogs are constrained to the dynamic viewport height with vertical scrolling.
+- Desktop retains the sidebar and tabular presentation. Table headers and explicit table roles remain available to assistive technology in the mobile card presentation.
+- Browser verification covered all four views at 320, 360, 390, 430, 768, 820, 950, 951, 1024, and 1440px, plus maximum-length outlet fields and a table form at 320 × 568px. No page-level horizontal overflow was observed; mobile/tablet record containers also fit without horizontal scrolling. Device-specific Safari behavior still requires testing on an actual iOS device.
 
-## Deploy on Vercel
+## Demo data and state
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `app/dashboard/model.ts` defines outlets, tables, paid transactions, and deterministic seed data.
+- `app/dashboard/page.tsx` owns shared in-memory state, management forms, navigation, and derived reports.
+- `app/dashboard/workspace.css` styles the responsive workspace.
+- The seed contains 3 outlets, 12 tables, and 24 paid transactions from October 3–10, 2026. The initial report range is October 1–10, 2026; total revenue is IDR 5,850,000.
+- Navigating between workspace views preserves edits. Refreshing or leaving the workspace resets them. No local storage, database, or backend API is used.
+- The outlet filter is shared across views. Search is reset when changing views. Date filters apply to revenue and transactions, not current operational table counts.
+- Table status changes do not create payments. Revenue comes only from seeded paid transactions. Historical amounts are unaffected by subsequent price changes.
+- Outlet names must be unique; table names must be unique within an outlet. Whitespace-only required fields and nonpositive or fractional rupiah rates are rejected.
+- Outlets with tables or transaction history cannot be deleted. Tables in use or referenced by transactions cannot be deleted. Unreferenced records can be deleted after confirmation.
+- Outlets with tables in use cannot be deactivated. Tables cannot be marked in use at inactive outlets. A table's outlet cannot be changed after creation, preserving its historical relationship.
+- CSV exports include only transactions matching the current outlet and date filters, with whole-number IDR amounts.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Security and scope
+
+This is an explicitly labeled demo, **not an authenticated staff application**. Do not deploy it with real customer, financial, or operational data. Production requires server-side authentication, role-based authorization, persistent storage, and authoritative booking/payment/availability integration. Public booking and real payment processing are outside this dashboard PoC.
