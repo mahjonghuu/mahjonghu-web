@@ -39,7 +39,7 @@ All five steps are implemented. Navigation switches views within `/dashboard`; t
 
 - `app/dashboard/model.ts` defines outlets, tables, paid transactions, and deterministic seed data.
 - `app/dashboard/page.tsx` owns shared in-memory state, management forms, navigation, and derived reports.
-- `app/dashboard/workspace.css` styles the responsive workspace.
+- `public/logo.webp` is the supplied original. `public/logo-transparent.webp` removes its black background while preserving the artwork with alpha transparency; the dashboard and browser icon use this variant. Keep the original file unchanged.
 - The seed contains 3 outlets, 12 tables, and 24 paid transactions from October 3–10, 2026. The initial report range is October 1–10, 2026; total revenue is IDR 5,850,000.
 - Navigating between workspace views preserves edits. Refreshing or leaving the workspace resets them. No local storage, database, or backend API is used.
 - The outlet filter is shared across views. Search is reset when changing views. Date filters apply to revenue and transactions, not current operational table counts.

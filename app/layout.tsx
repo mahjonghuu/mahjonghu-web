@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MahjongHu — Business Workspace",
   description: "Proof of concept dashboard operasional MahjongHu.",
+  icons: {
+    icon: [{ url: "/logo-transparent.webp", type: "image/webp" }],
+    shortcut: [{ url: "/logo-transparent.webp", type: "image/webp" }],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

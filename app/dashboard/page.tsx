@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { initialData, rupiah, type Outlet, type MahjongTable } from "./model";
@@ -333,9 +334,16 @@ export default function Dashboard() {
     <div className="workspace">
       <aside className="sidebar">
         <Link href="/" className="brand">
-          <span className="brand-mark">胡</span>
-          <span>
-            mahjong<span className="brand-light">hu</span>
+          <Image
+            className="brand-logo"
+            src="/logo-transparent.webp"
+            alt="MahjongHu"
+            width={96}
+            height={96}
+            priority
+          />
+          <span className="brand-wordmark">
+            MahjongHu
             <small>BUSINESS SPACE</small>
           </span>
         </Link>
