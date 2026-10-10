@@ -20,15 +20,48 @@ export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init);
-  const body =
-    response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) {
-    const errorBody = body as ApiErrorBody;
-    const message = Array.isArray(errorBody?.message)
-      ? errorBody.message.join(", ")
-      : (errorBody?.message ?? `Permintaan gagal (${response.status}).`);
-    throw new ApiError(message, response.status);
+  const method = (init?.method ?? "GET").toUpperCase();
+  const requestId = crypto.randomUUID();
+  const requestContext = { requestId, method, path };
+  const requestHeaders = new Headers(init?.headers);
+  requestHeaders.set("X-Request-ID", requestId);
+  const startedAt = performance.now();
+  console.info("[api] request started", requestContext);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers: requestHeaders,
+    });
+    const body =
+      response.status === 204 ? null : await response.json().catch(() => null);
+    const durationMs = Math.round(performance.now() - startedAt);
+    if (!response.ok) {
+      console.warn("[api] request failed", {
+        ...requestContext,
+        status: response.status,
+        durationMs,
+      });
+      const errorBody = body as ApiErrorBody;
+      const message = Array.isArray(errorBody?.message)
+        ? errorBody.message.join(", ")
+        : (errorBody?.message ?? `Permintaan gagal (${response.status}).`);
+      throw new ApiError(message, response.status);
+    }
+    console.info("[api] request completed", {
+      ...requestContext,
+      status: response.status,
+      durationMs,
+    });
+    return body as T;
+  } catch (error) {
+    if (!(error instanceof ApiError)) {
+      console.error("[api] request failed", {
+        ...requestContext,
+        durationMs: Math.round(performance.now() - startedAt),
+        failure: error instanceof Error ? error.name : "UnknownError",
+      });
+    }
+    throw error;
   }
-  return body as T;
 }
