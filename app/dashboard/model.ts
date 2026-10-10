@@ -26,6 +26,13 @@ export type Transaction = {
   hours: number;
   amount: number;
 };
+
+/** In-memory demo entities shared across dashboard route segments. */
+export type WorkspaceData = {
+  outlets: Outlet[];
+  tables: MahjongTable[];
+  transactions: Transaction[];
+};
 /** Formats whole rupiah amounts for the Indonesian interface. */
 export const rupiah = (value: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -34,7 +41,7 @@ export const rupiah = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 /** Creates deterministic sample data; refreshing intentionally resets all changes. */
-export function initialData() {
+export function initialData(): WorkspaceData {
   const outlets: Outlet[] = [
     {
       id: "o1",

@@ -25,7 +25,7 @@ npm run build
 4. Once booking and payment APIs exist, derive availability and reports from persisted operational/payment records.
 5. Verify outlet API flows while preserving clear demo-only boundaries for unconnected modules.
 
-Navigation switches views within `/dashboard`; these views are not separate URLs. The outlet management view persists through the backend API. The dashboard, table management, and revenue report still use in-memory demo data.
+Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/outlet`, `/dashboard/table`, and `/dashboard/revenue`. The shared route layout owns the sidebar, top bar, and in-memory demo state; outlet management persists through the backend API.
 
 ### Responsive workspace
 
@@ -33,12 +33,14 @@ Navigation switches views within `/dashboard`; these views are not separate URLs
 - At widths up to 400px, metrics, date fields, and record details use a single column. Larger mobile/tablet screens use two columns where space permits.
 - Long outlet names and addresses wrap inside their containers. Native inputs can shrink to fit, use 16px text on mobile to avoid focus-triggered iOS zoom, and dialogs are constrained to the dynamic viewport height with vertical scrolling.
 - Desktop retains the sidebar and tabular presentation. Table headers and explicit table roles remain available to assistive technology in the mobile card presentation.
-- Browser verification covered all four views at 320, 360, 390, 430, 768, 820, 950, 951, 1024, and 1440px, plus maximum-length outlet fields and a table form at 320 × 568px. No page-level horizontal overflow was observed; mobile/tablet record containers also fit without horizontal scrolling. Device-specific Safari behavior still requires testing on an actual iOS device.
+- After the route split, all four dashboard routes were smoke-tested at 390px with no page-level horizontal overflow; table changes remained in shared in-memory state across navigation. Test iOS Safari separately for device-specific behavior.
 
 ## Demo data and state
 
 - `app/dashboard/model.ts` defines outlet, table, and paid-transaction shapes plus the sample data for still-demo modules.
-- `app/dashboard/page.tsx` connects outlet CRUD to the backend and retains in-memory table and transaction state.
+- `app/dashboard/layout.tsx` provides shared navigation and in-memory state across the dashboard routes.
+- `app/dashboard/outlet/page.tsx` connects outlet CRUD to the backend; table and transaction records remain demo state.
+- `app/dashboard/table/page.tsx` and `app/dashboard/revenue/page.tsx` own the demo table-management and revenue-report routes.
 - Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
 - Outlet list, create, edit, and archive requests use `GET`, `POST`, `PATCH`, and `DELETE /outlets`; these outlet changes persist in PostgreSQL. Table counts on outlet cards come from the backend.
 - The table-management and revenue-report screens remain demo-only: their 12 sample tables and 24 sample transactions do not come from the outlet API. Their outlet filter/data remain the local demo dataset and do not imply backend table or payment integration.

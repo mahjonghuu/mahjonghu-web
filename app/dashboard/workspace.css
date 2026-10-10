@@ -139,6 +139,7 @@
   color: #758078;
   font-weight: 500 !important;
   white-space: nowrap;
+  text-decoration: none;
 }
 .nav-item:hover {
   background: #f5f7f2;
@@ -613,6 +614,7 @@
   color: #608162;
   font-size: 10px !important;
   font-weight: 500 !important;
+  text-decoration: none;
 }
 .availability > .text-button {
   padding: 15px 24px;
@@ -641,6 +643,8 @@
   padding: 8px 12px;
   font-size: 10px !important;
   white-space: nowrap;
+  display: inline-block;
+  text-decoration: none;
 }
 .secondary:hover {
   background: #f2f6ee;
