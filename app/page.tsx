@@ -19,7 +19,7 @@ function Arrow({ diagonal = false }: { diagonal?: boolean }) {
   return <span aria-hidden="true">{diagonal ? "↗" : "→"}</span>;
 }
 
-/** Public, frontend-only outlet discovery and booking preview. No reservation or payment is persisted. */
+/** Public outlet discovery and live availability preview. No reservation or payment is persisted. */
 export default function Home() {
   return (
     <Suspense>
@@ -199,8 +199,8 @@ function BookingPage() {
       {outlet && (
         <BookingSchedule
           key={outlet.id}
-          outlet={{ id: outlet.id, name: outlet.name, address: outlet.address, tables: outlet.tables.length, tableNames: outlet.tables.map((table) => table.name), price: outlet.price }}
-          outlets={outlets.map((item) => ({ id: item.id, name: item.name, address: item.address, tables: item.tables.length, tableNames: item.tables.map((table) => table.name), price: item.price }))}
+          outlet={{ id: outlet.id, name: outlet.name, address: outlet.address, tables: outlet.tables.length, tableIds: outlet.tables.map((table) => table.id), tableNames: outlet.tables.map((table) => table.name), tableRates: outlet.tables.map((table) => table.rate), price: outlet.price }}
+          outlets={outlets.map((item) => ({ id: item.id, name: item.name, address: item.address, tables: item.tables.length, tableIds: item.tables.map((table) => table.id), tableNames: item.tables.map((table) => table.name), tableRates: item.tables.map((table) => table.rate), price: item.price }))}
           onOutletChange={setOutletId}
         />
       )}

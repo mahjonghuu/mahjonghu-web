@@ -23,7 +23,8 @@ npm run build
 
 - The public page fetches active outlets from `GET /outlets/public` and their tables and hourly rates from `GET /tables/public`. City filters, table counts, table names, and minimum hourly prices use those API responses.
 - Outlet photos remain illustrative local imagery; descriptions/amenities are not supplied by the API and are not presented as live outlet details.
-- The booking schedule uses the fetched table names and minimum rate, but its occupancy remains deterministic demo data. No actual reservation or payment is persisted.
+- After a date is selected, the booking schedule queries `GET /bookings/availability` for each future one-hour slot. Unavailable slots cannot be selected; table-specific rates are used in estimates.
+- The schedule is an availability preview only. It does not create a booking hold or persist a reservation or payment.
 - Schedule cells are keyboard-operable buttons in a semantic table. On narrow screens the grid scrolls horizontally with sticky table labels, and the summary moves below the schedule without page-level horizontal overflow. Schedule styling lives in `app/booking-schedule.module.css`; landing-page styling remains in `app/page.module.css`. The Tailwind Turbopack loader targets `globals.css` so native CSS Modules retain their class exports.
 - Local outlet photos are illustrative restaurant interiors from Unsplash, not photographs of actual MahjongHu branches: photo IDs `1517248135467-4c7edcad34c4`, `1559339352-11d035aa65de`, and `1552566626-52f8b828add9`.
 

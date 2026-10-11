@@ -1,98 +1,51 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { formatRupiah } from "../lib/currency";
+import {
+  BOOKING_HOURS,
+  useBooking,
+  type BookingOutlet,
+} from "@/hooks/use-booking";
 import styles from "./booking-schedule.module.css";
 
-type Outlet = {
-  id: string;
-  name: string;
-  address: string;
-  tables: number;
-  tableNames: string[];
-  price: number;
-};
-type Slot = { table: number; hour: number };
-type Session = { table: number; start: number; end: number };
-const hours = Array.from({ length: 10 }, (_, index) => index + 12);
 const hourLabel = (hour: number) => `${hour}:00`;
-const tableLabel = (table: number) => `Meja ${String(table).padStart(2, "0")}`;
 
-function today() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-/** Deterministic illustrative occupancy, not live availability or a reservation hold. */
-function isBooked(table: number, hour: number, date: string, outletId: string) {
-  const seed = Number(date.replaceAll("-", "")) + outletId.length;
-  const start = 13 + ((table * 3 + seed) % 7);
-  return hour === start || (table % 2 === 0 && hour === start + 1);
-}
-
-/** Merge adjacent hours on the same table; preserve gaps as separate billable sessions. */
-function sessionsFor(slots: Slot[]): Session[] {
-  const sorted = [...slots].sort(
-    (a, b) => a.table - b.table || a.hour - b.hour,
-  );
-  const sessions: Session[] = [];
-  for (const slot of sorted) {
-    const previous = sessions.at(-1);
-    if (previous?.table === slot.table && previous.end === slot.hour) {
-      previous.end += 1;
-    } else {
-      sessions.push({
-        table: slot.table,
-        start: slot.hour,
-        end: slot.hour + 1,
-      });
-    }
-  }
-  return sessions;
-}
-
-/** Inline demo schedule. Each selected cell bills one table for one hour; outlet changes remount and reset the plan. */
+/** Renders the booking schedule and its non-reserving price preview. */
 export default function BookingSchedule({
   outlet,
   outlets,
   onOutletChange,
 }: {
-  outlet: Outlet;
-  outlets: Outlet[];
+  outlet: BookingOutlet;
+  outlets: BookingOutlet[];
   onOutletChange: (id: string) => void;
 }) {
-  const [date, setDate] = useState("");
-  const [selected, setSelected] = useState<Slot[]>([]);
-  const [preview, setPreview] = useState(false);
+  const booking = useBooking(outlet);
+  const {
+    date,
+    selected,
+    preview,
+    sessions,
+    tableCount,
+    total,
+    validDate,
+    today,
+    availabilityLoading,
+    availabilityError,
+    nameOfTable,
+    rateOfTable,
+    isSlotAvailable,
+    isSlotUnavailable,
+    changeDate,
+    toggleSlot,
+    clearSelection,
+    removeSession,
+    showPreview,
+    retryAvailability,
+  } = booking;
   const receipt = useRef<HTMLHeadingElement>(null);
   const dateInput = useRef<HTMLInputElement>(null);
-  const nameOfTable = (table: number) =>
-    outlet.tableNames[table - 1] ?? tableLabel(table);
-  const sessions = sessionsFor(selected);
-  const tableCount = new Set(selected.map((slot) => slot.table)).size;
-  const total = selected.length * outlet.price;
-  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= today();
-
-  function changeDate(value: string) {
-    setDate(value);
-    setSelected([]);
-    setPreview(false);
-  }
-
-  function toggleSlot(table: number, hour: number) {
-    if (!validDate || isBooked(table, hour, date, outlet.id)) return;
-    setSelected((current) =>
-      current.some((slot) => slot.table === table && slot.hour === hour)
-        ? current.filter((slot) => slot.table !== table || slot.hour !== hour)
-        : [...current, { table, hour }],
-    );
-    setPreview(false);
-  }
-
-  function clearSelection() {
-    setSelected([]);
-    setPreview(false);
-  }
 
   return (
     <section
@@ -135,7 +88,7 @@ export default function BookingSchedule({
             aria-label="Tanggal main"
             type="date"
             required
-            min={today()}
+            min={today}
             value={date}
             onChange={(event) => changeDate(event.target.value)}
           />
@@ -143,12 +96,12 @@ export default function BookingSchedule({
         <button
           className={styles.today}
           type="button"
-          onClick={() => changeDate(today())}
+          onClick={() => changeDate(today)}
         >
           Hari ini <span aria-hidden="true">↗</span>
         </button>
         <div className={styles.rate}>
-          <span>HARGA PER MEJA / JAM</span>
+          <span>HARGA MULAI DARI / MEJA / JAM</span>
           <strong>{formatRupiah(outlet.price)}</strong>
         </div>
       </div>
@@ -163,7 +116,7 @@ export default function BookingSchedule({
               <h3>{outlet.name}</h3>
               <p>{outlet.tables} meja · 4 pemain / meja · 12:00–22:00</p>
             </div>
-            <span className={styles.demoBadge}>DEMO SCHEDULE</span>
+            <span className={styles.demoBadge}>LIVE AVAILABILITY</span>
           </div>
           <div className={styles.legend} aria-label="Legenda ketersediaan">
             <span>
@@ -176,10 +129,21 @@ export default function BookingSchedule({
             </span>
             <span>
               <i className={styles.bookedKey} />
-              Terisi
+              Tidak tersedia
             </span>
             <small>1 kotak = 1 jam / meja</small>
           </div>
+          {availabilityLoading && date && (
+            <p role="status">Memuat ketersediaan meja...</p>
+          )}
+          {availabilityError && (
+            <p role="alert">
+              {availabilityError}{" "}
+              <button type="button" onClick={retryAvailability}>
+                Coba lagi
+              </button>
+            </p>
+          )}
           {!validDate && (
             <div className={styles.dateNotice} role="status">
               {date
@@ -205,7 +169,7 @@ export default function BookingSchedule({
               <thead>
                 <tr>
                   <th scope="col">MEJA / JAM</th>
-                  {hours.map((hour) => (
+                  {BOOKING_HOURS.map((hour) => (
                     <th scope="col" key={hour}>
                       {hourLabel(hour)}
                       <span>{hourLabel(hour + 1)}</span>
@@ -228,8 +192,14 @@ export default function BookingSchedule({
                         <small>4 pemain</small>
                       </span>
                     </th>
-                    {hours.map((hour) => {
-                      const booked = isBooked(table, hour, date, outlet.id);
+                    {BOOKING_HOURS.map((hour) => {
+                      const available = isSlotAvailable(table, hour);
+                      const unavailable = isSlotUnavailable(table, hour);
+                      const blocked =
+                        !validDate ||
+                        availabilityLoading ||
+                        Boolean(availabilityError) ||
+                        !available;
                       const active = selected.some(
                         (slot) => slot.table === table && slot.hour === hour,
                       );
@@ -239,17 +209,25 @@ export default function BookingSchedule({
                             type="button"
                             data-table={table}
                             data-hour={hour}
-                            className={`${styles.slot} ${booked ? styles.booked : active ? styles.selected : ""}`}
-                            disabled={!validDate || booked}
+                            className={`${styles.slot} ${unavailable ? styles.booked : active ? styles.selected : ""}`}
+                            disabled={blocked}
                             aria-pressed={active}
-                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${booked ? "terisi" : active ? "dipilih, klik untuk hapus" : "tersedia"}`}
+                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${availabilityLoading ? "memuat ketersediaan" : availabilityError ? "ketersediaan gagal dimuat" : unavailable ? "tidak tersedia" : active ? "dipilih, klik untuk hapus" : "tersedia"}`}
                             onClick={() => toggleSlot(table, hour)}
                           >
                             <span aria-hidden="true">
-                              {booked ? "—" : active ? "✓" : "+"}
+                              {unavailable ? "—" : active ? "✓" : "+"}
                             </span>
                             <small>
-                              {booked ? "Terisi" : active ? "Dipilih" : "Pilih"}
+                              {availabilityLoading
+                                ? "Memuat"
+                                : availabilityError
+                                  ? "Gagal"
+                                  : unavailable
+                                    ? "Tidak tersedia"
+                                    : active
+                                      ? "Dipilih"
+                                      : "Pilih"}
                             </small>
                           </button>
                         </td>
@@ -307,24 +285,15 @@ export default function BookingSchedule({
                       </span>
                       <b>
                         {formatRupiah(
-                          (session.end - session.start) * outlet.price,
+                          (session.end - session.start) *
+                            rateOfTable(session.table),
                         )}
                       </b>
                     </div>
                     <button
                       type="button"
                       aria-label={`Hapus ${nameOfTable(session.table)} jam ${hourLabel(session.start)}–${hourLabel(session.end)}`}
-                      onClick={() => {
-                        setSelected((current) =>
-                          current.filter(
-                            (slot) =>
-                              slot.table !== session.table ||
-                              slot.hour < session.start ||
-                              slot.hour >= session.end,
-                          ),
-                        );
-                        setPreview(false);
-                      }}
+                      onClick={() => removeSession(session)}
                     >
                       ×
                     </button>
@@ -334,7 +303,7 @@ export default function BookingSchedule({
             </>
           )}
           <div className={styles.priceExplanation}>
-            Tarif {formatRupiah(outlet.price)} × {selected.length} jam-meja
+            Tarif meja sesuai daftar harga × {selected.length} jam-meja
             <small>Jam-meja = total jam dari seluruh meja yang dipilih.</small>
           </div>
           <div className={styles.total} aria-live="polite">
@@ -346,7 +315,7 @@ export default function BookingSchedule({
             type="button"
             disabled={!selected.length || !validDate}
             onClick={() => {
-              setPreview(true);
+              showPreview();
               requestAnimationFrame(() => {
                 receipt.current?.scrollIntoView({ block: "center" });
                 receipt.current?.focus({ preventScroll: true });
@@ -383,11 +352,13 @@ export default function BookingSchedule({
                   <small>
                     {hourLabel(session.start)}–{hourLabel(session.end)} ·{" "}
                     {session.end - session.start} jam ×{" "}
-                    {formatRupiah(outlet.price)}
+                    {formatRupiah(rateOfTable(session.table))}
                   </small>
                 </span>
                 <strong>
-                  {formatRupiah((session.end - session.start) * outlet.price)}
+                  {formatRupiah(
+                    (session.end - session.start) * rateOfTable(session.table),
+                  )}
                 </strong>
               </div>
             ))}
@@ -407,8 +378,8 @@ export default function BookingSchedule({
         </section>
       )}
       <p className={styles.demoFootnote}>
-        Semua outlet, tarif, dan slot terisi merupakan data ilustrasi.
-        Ketersediaan nyata belum terhubung ke backend.
+        Tarif berasal dari backend; status slot diperiksa langsung untuk outlet
+        dan tanggal yang dipilih. Pilihan belum membuat reservasi atau hold.
       </p>
     </section>
   );
