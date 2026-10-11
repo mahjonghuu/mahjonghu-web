@@ -10,6 +10,7 @@ import "./workspace.css";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: 0 },
+  { label: "Booking", href: "/dashboard/booking", icon: 4 },
   { label: "Outlet", href: "/dashboard/outlet", icon: 1 },
   { label: "Meja", href: "/dashboard/table", icon: 2 },
   { label: "Laporan pendapatan", href: "/dashboard/revenue", icon: 3 },

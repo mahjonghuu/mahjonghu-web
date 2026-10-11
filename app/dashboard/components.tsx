@@ -7,6 +7,7 @@ const paths = [
   "M3 10h18L19 3H5z M5 10v11h14V10 M9 21v-7h6v7",
   "M3 5h18v12H3z M6 17v4 M18 17v4 M3 9h18",
   "M4 21V12h4v9 M10 21V7h4v14 M16 21V3h4v18",
+  "M5 4h14a2 2 0 0 1 2 2v15H3V6a2 2 0 0 1 2-2 M16 2v4 M8 2v4 M3 10h18 M8 14h3",
 ];
 
 /** Renders one of the workspace's inline SVG navigation icons. */

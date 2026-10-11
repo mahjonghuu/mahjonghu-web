@@ -399,11 +399,26 @@
   border-radius: 6px;
   font-size: 12px !important;
 }
+.booking-search {
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+.booking-search input {
+  width: 100%;
+  border: 1px solid #e0e5dd;
+  background: white;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+}
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 17px;
   margin-bottom: 24px;
+}
+.booking-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .stat-card {
   padding: 21px 20px;
@@ -1017,7 +1032,7 @@ tr:last-child td {
   }
   .sidebar nav {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
   }
   .nav-item {
