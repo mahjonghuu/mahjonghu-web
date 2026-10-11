@@ -13,13 +13,11 @@ function loginRedirect(request: NextRequest) {
 
 /** Validates dashboard sessions through the backend before serving dashboard routes. */
 export async function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/dashboard/login") {
-    return NextResponse.next();
-  }
-
+  const isLoginPage = request.nextUrl.pathname === "/dashboard/login";
   const token = request.cookies.get("ownerToken")?.value;
-  if (!token) return loginRedirect(request);
-
+  if (!token) {
+    return isLoginPage ? NextResponse.next() : loginRedirect(request);
+  }
   let authResponse: Response;
   try {
     authResponse = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -32,14 +30,20 @@ export async function proxy(request: NextRequest) {
     });
   }
 
-  if (authResponse.ok) return NextResponse.next();
+  if (authResponse.ok) {
+    if (!isLoginPage) return NextResponse.next();
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = "/dashboard";
+    dashboardUrl.search = "";
+    return NextResponse.redirect(dashboardUrl);
+  }
   if (authResponse.status >= 500) {
     return new NextResponse("Layanan autentikasi sementara tidak tersedia.", {
       status: 503,
     });
   }
 
-  const response = loginRedirect(request);
+  const response = isLoginPage ? NextResponse.next() : loginRedirect(request);
   response.cookies.delete("ownerToken");
   return response;
 }
