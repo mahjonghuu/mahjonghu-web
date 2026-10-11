@@ -1,121 +1,33 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
 import { Badge, Icon, OutletSelect, PageHeading } from "../components";
-import { rupiah, type MahjongTable } from "../model";
-import { useWorkspace } from "../workspace-state";
+import { useTables } from "../../../hooks/use-tables";
+import { rupiah } from "../model";
 
-/** Manages demo table state shared with the dashboard until refresh. */
+/** Manages persistent table records from the backend API. */
 export default function TablePage() {
-  const { data, setData, outletFilter, setOutletFilter } = useWorkspace();
-  const [query, setQuery] = useState("");
-  const [editor, setEditor] = useState<MahjongTable | null | undefined>(
-    undefined,
-  );
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const dialog = useRef<HTMLDialogElement>(null);
-
-  const scopedTables = data.tables.filter(
-    (table) => outletFilter === "all" || table.outletId === outletFilter,
-  );
-  const tableRows = scopedTables.filter((table) => {
-    const outlet = data.outlets.find((item) => item.id === table.outletId);
-    return `${table.name} ${outlet?.name ?? "Outlet dihapus"}`
-      .toLowerCase()
-      .includes(query.toLowerCase());
-  });
-
-  function openEditor(table?: MahjongTable) {
-    setError("");
-    setEditor(table ?? null);
-    dialog.current?.showModal();
-  }
-
-  function closeEditor() {
-    dialog.current?.close();
-    setEditor(undefined);
-  }
-
-  function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (editor === undefined) return;
-    const fields = new FormData(event.currentTarget);
-    const name = String(fields.get("name") ?? "").trim();
-    const outletId = String(fields.get("outletId") ?? "");
-    const rate = Number(fields.get("rate"));
-    const status = String(fields.get("status")) as MahjongTable["status"];
-    if (!name) {
-      setError("Nama meja tidak boleh kosong.");
-      return;
-    }
-    if (
-      !data.outlets.some((outlet) => outlet.id === outletId) ||
-      !Number.isSafeInteger(rate) ||
-      rate <= 0
-    ) {
-      setError("Pilih outlet dan isi tarif rupiah bulat lebih dari nol.");
-      return;
-    }
-    if (
-      status === "Digunakan" &&
-      !data.outlets.find((outlet) => outlet.id === outletId)?.active
-    ) {
-      setError("Meja tidak dapat digunakan di outlet nonaktif.");
-      return;
-    }
-    if (
-      data.tables.some(
-        (table) =>
-          table.id !== editor?.id &&
-          table.outletId === outletId &&
-          table.name.toLowerCase() === name.toLowerCase(),
-      )
-    ) {
-      setError("Nama meja sudah digunakan di outlet ini.");
-      return;
-    }
-
-    const record: MahjongTable = {
-      id: editor?.id ?? crypto.randomUUID(),
-      name,
-      outletId,
-      rate,
-      status,
-    };
-    setData((current) => ({
-      ...current,
-      tables: editor
-        ? current.tables.map((table) =>
-            table.id === record.id ? record : table,
-          )
-        : [...current.tables, record],
-    }));
-    setMessage("Perubahan berhasil disimpan di sesi demo.");
-    closeEditor();
-  }
-
-  function removeTable(table: MahjongTable) {
-    if (
-      table.status === "Digunakan" ||
-      data.transactions.some((transaction) => transaction.tableId === table.id)
-    ) {
-      setMessage(
-        "Meja digunakan atau memiliki riwayat transaksi dan tidak dapat dihapus. Gunakan status perawatan bila tidak tersedia.",
-      );
-      return;
-    }
-    if (!window.confirm(`Hapus ${table.name}?`)) return;
-    setData((current) => ({
-      ...current,
-      tables: current.tables.filter((item) => item.id !== table.id),
-    }));
-    setMessage("Meja berhasil dihapus.");
-  }
-
-  const outletName = (id: string) =>
-    data.outlets.find((outlet) => outlet.id === id)?.name ?? "Outlet dihapus";
-
+  const {
+    outlets,
+    scopedTables,
+    tableRows,
+    outletFilter,
+    setOutletFilter,
+    loading,
+    saving,
+    query,
+    setQuery,
+    editor,
+    setEditor,
+    message,
+    setMessage,
+    error,
+    dialog,
+    openEditor,
+    closeEditor,
+    save,
+    removeTable,
+    outletName,
+  } = useTables();
   return (
     <>
       <PageHeading
@@ -124,7 +36,7 @@ export default function TablePage() {
         action={
           <button
             className="primary"
-            disabled={!data.outlets.length}
+            disabled={!outlets.length || loading}
             onClick={() => openEditor()}
           >
             ＋ Tambah meja
@@ -133,7 +45,7 @@ export default function TablePage() {
       />
       <div className="filterbar">
         <OutletSelect
-          outlets={data.outlets}
+          outlets={outlets}
           value={outletFilter}
           onChange={setOutletFilter}
         />
@@ -162,7 +74,7 @@ export default function TablePage() {
         </p>
       )}
       <p className="field-help">
-        Dashboard, meja, dan laporan masih menggunakan data demo.
+        Data meja dan status operasional dimuat dari API backend.
       </p>
       <section className="panel">
         <div className="panel-title">
@@ -187,60 +99,65 @@ export default function TablePage() {
               </tr>
             </thead>
             <tbody role="rowgroup">
-              {tableRows.map((table) => (
-                <tr key={table.id} role="row">
-                  <td role="cell" data-label="Nama meja">
-                    <strong className="table-name">
-                      <span className="table-icon">
-                        <Icon index={2} />
-                      </span>
-                      {table.name}
-                    </strong>
-                  </td>
-                  <td role="cell" data-label="Outlet">
-                    {outletName(table.outletId)}
-                    {!data.outlets.find(
-                      (outlet) => outlet.id === table.outletId,
-                    )?.active && <small>Outlet nonaktif</small>}
-                  </td>
-                  <td role="cell" data-label="Tarif / jam" className="money">
-                    {rupiah(table.rate)}
-                  </td>
-                  <td role="cell" data-label="Status">
-                    <Badge
-                      tone={
-                        table.status === "Tersedia"
-                          ? "green"
-                          : table.status === "Digunakan"
-                            ? "blue"
-                            : "amber"
-                      }
-                    >
-                      {table.status}
-                    </Badge>
-                  </td>
-                  <td role="cell" data-label="Aksi">
-                    <div className="row-actions">
-                      <button
-                        className="secondary"
-                        onClick={() => openEditor(table)}
-                      >
-                        Edit
-                        <span className="sr-only">
-                          {` ${table.name} ${outletName(table.outletId)}`}
-                        </span>
-                      </button>
-                      <button
-                        className="delete-button"
-                        onClick={() => removeTable(table)}
-                      >
-                        Hapus
-                        <span className="sr-only"> {table.name}</span>
-                      </button>
-                    </div>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={5}>Memuat meja…</td>
                 </tr>
-              ))}
+              ) : (
+                tableRows.map((table) => (
+                  <tr key={table.id} role="row">
+                    <td role="cell" data-label="Nama meja">
+                      <strong className="table-name">
+                        <span className="table-icon">
+                          <Icon index={2} />
+                        </span>
+                        {table.name}
+                      </strong>
+                    </td>
+                    <td role="cell" data-label="Outlet">
+                      {outletName(table.outletId)}
+                      {!outlets.find((outlet) => outlet.id === table.outletId)
+                        ?.active && <small>Outlet nonaktif</small>}
+                    </td>
+                    <td role="cell" data-label="Tarif / jam" className="money">
+                      {rupiah(table.rate)}
+                    </td>
+                    <td role="cell" data-label="Status">
+                      <Badge
+                        tone={
+                          table.status === "Tersedia"
+                            ? "green"
+                            : table.status === "Digunakan"
+                              ? "blue"
+                              : "amber"
+                        }
+                      >
+                        {table.status}
+                      </Badge>
+                    </td>
+                    <td role="cell" data-label="Aksi">
+                      <div className="row-actions">
+                        <button
+                          className="secondary"
+                          onClick={() => openEditor(table)}
+                        >
+                          Edit
+                          <span className="sr-only">
+                            {` ${table.name} ${outletName(table.outletId)}`}
+                          </span>
+                        </button>
+                        <button
+                          className="delete-button"
+                          onClick={() => removeTable(table)}
+                        >
+                          Hapus
+                          <span className="sr-only"> {table.name}</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
           {!tableRows.length && (
@@ -288,11 +205,11 @@ export default function TablePage() {
                 name="outletId"
                 defaultValue={
                   editor?.outletId ??
-                  (outletFilter !== "all" ? outletFilter : data.outlets[0]?.id)
+                  (outletFilter !== "all" ? outletFilter : outlets[0]?.id)
                 }
                 disabled={Boolean(editor)}
               >
-                {data.outlets.map((outlet) => (
+                {outlets.map((outlet) => (
                   <option key={outlet.id} value={outlet.id}>
                     {outlet.name}
                   </option>
@@ -326,9 +243,13 @@ export default function TablePage() {
             </label>
             <label>
               Status meja
-              <select name="status" defaultValue={editor?.status ?? "Tersedia"}>
+              <select
+                name="status"
+                defaultValue={editor?.status ?? "Tersedia"}
+                disabled={editor?.status === "Digunakan"}
+              >
                 <option>Tersedia</option>
-                <option>Digunakan</option>
+                {editor?.status === "Digunakan" && <option>Digunakan</option>}
                 <option>Perawatan</option>
               </select>
             </label>
@@ -338,14 +259,15 @@ export default function TablePage() {
               </p>
             )}
             <p className="field-help">
-              Data meja demo hanya tersimpan selama sesi ini.
+              Status Digunakan mengikuti reservasi aktif. Meja dengan riwayat
+              reservasi tidak dapat dihapus.
             </p>
             <div className="dialog-actions">
               <button type="button" className="secondary" onClick={closeEditor}>
                 Batal
               </button>
-              <button type="submit" className="primary">
-                Simpan perubahan
+              <button type="submit" className="primary" disabled={saving}>
+                {saving ? "Menyimpan…" : "Simpan perubahan"}
               </button>
             </div>
           </form>
