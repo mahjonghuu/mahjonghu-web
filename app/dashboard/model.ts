@@ -33,13 +33,11 @@ export type WorkspaceData = {
   tables: MahjongTable[];
   transactions: Transaction[];
 };
-/** Formats whole rupiah amounts for the Indonesian interface. */
+/** Formats whole rupiah amounts identically across server and browser ICU versions. */
 export const rupiah = (value: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
+  `Rp ${Math.round(value)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 /** Creates deterministic sample data; refreshing intentionally resets all changes. */
 export function initialData(): WorkspaceData {
   const outlets: Outlet[] = [
