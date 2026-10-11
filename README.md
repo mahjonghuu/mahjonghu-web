@@ -17,6 +17,21 @@ npm run lint
 npm run build
 ```
 
+## Public booking preview
+
+The public route (`app/page.tsx`) is a responsive, frontend-only booking experience, separate from the internal workspace.
+
+- Discover three fictional outlets across Jakarta and Bandung, with city filters, atmosphere images, amenities, and hourly prices.
+- Booking uses the inline table-by-hour schedule in `app/booking-schedule.tsx`, not a modal. Choose an outlet and local date (or use “Hari ini”), then toggle any available one-hour cells from 12:00 through 22:00 across multiple tables.
+- A selection belongs to one outlet and date. Changing either clears the plan. Occupied demo cells and cells without a valid current/future date cannot be selected; demo occupancy varies deterministically by outlet, date, and table.
+- The live summary groups adjacent hours on the same table, preserves gaps as separate sessions, and supports removing individual sessions or all selections. The estimate is selected table-hours multiplied by the outlet's hourly rate, with no additional demo fees.
+- The inline payment preview lists every session and its subtotal. Editing the plan dismisses the old preview; no actual checkout or reservation takes place.
+- Whole-rupiah prices share `lib/currency.ts` and use deterministic `Rp 75.000` formatting rather than runtime currency formatting, avoiding hydration mismatches between server and browser ICU versions.
+- All availability, prices, addresses, and outlet details are demo data. No API requests, reservations, payments, or persistence are implemented; reloading resets the plan.
+- Schedule cells are keyboard-operable buttons in a semantic table. On narrow screens the grid scrolls horizontally with sticky table labels, and the summary moves below the schedule without page-level horizontal overflow. Schedule styling lives in `app/booking-schedule.module.css`; landing-page styling remains in `app/page.module.css`. The Tailwind Turbopack loader targets `globals.css` so native CSS Modules retain their class exports.
+- Local outlet photos are illustrative restaurant interiors from Unsplash, not photographs of actual MahjongHu branches: photo IDs `1517248135467-4c7edcad34c4`, `1559339352-11d035aa65de`, and `1552566626-52f8b828add9`.
+
+
 ## Dashboard PoC plan and implementation
 
 1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, outlets, tables, and revenue reports.
@@ -52,4 +67,4 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/outlet`, `/
 
 ## Security and scope
 
-The outlet CRUD API is unauthenticated and restricted to a backend listening on `127.0.0.1` in local development. It must not be exposed or deployed before owner authentication is implemented. Tables and reports are still demo data, not operational records. Production requires server-side role authorization, persistent storage, and authoritative booking/payment/availability integration. Public booking and real payment processing are outside this PoC phase.
+The outlet CRUD API is unauthenticated and restricted to a backend listening on `127.0.0.1` in local development. It must not be exposed or deployed before owner authentication is implemented. Tables and reports are still demo data, not operational records. Production requires server-side role authorization, persistent storage, and authoritative booking/payment/availability integration. The public booking page is a frontend-only preview; real reservations and payment processing remain out of scope.

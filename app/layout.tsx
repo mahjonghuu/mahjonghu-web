@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MahjongHu — Business Workspace",
-  description: "Proof of concept dashboard operasional MahjongHu.",
+  title: "MahjongHu — Good Tiles. Great Company.",
+  description:
+    "Temukan outlet MahjongHu favoritmu, pilih waktu bermain, dan jelajahi pengalaman booking mahjong bersama teman. Pratinjau dengan data demo.",
   icons: {
     icon: [{ url: "/logo-transparent.webp", type: "image/webp" }],
     shortcut: [{ url: "/logo-transparent.webp", type: "image/webp" }],
