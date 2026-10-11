@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "../../../lib/api";
@@ -38,40 +40,89 @@ export default function DashboardLoginPage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.card}>
-        <h1>Masuk ke dashboard</h1>
-        <p>Gunakan akun owner untuk mengakses ruang kerja.</p>
-        <form onSubmit={submit} className={styles.form}>
-          <label className={styles.field}>
-            Email
-            <input
-              autoComplete="username"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+      <div className={styles.shell}>
+        <header className={styles.header}>
+          <Link href="/" className={styles.brand} aria-label="MahjongHu, kembali ke beranda">
+            <Image
+              src="/logo-transparent.webp"
+              alt=""
+              width={56}
+              height={56}
+              className={styles.logo}
+              priority
             />
-          </label>
-          <label className={styles.field}>
-            Password
-            <input
-              autoComplete="current-password"
-              type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
+            <span className={styles.brandName}>
+              MahjongHu
+              <small>BUSINESS SPACE</small>
+            </span>
+          </Link>
+          <span className={styles.accessLabel}>AREA KHUSUS OWNER</span>
+        </header>
+
+        <div className={styles.content}>
+          <section className={styles.intro} aria-labelledby="intro-title">
+            <p className={styles.eyebrow}><span /> RUANG KERJA MAHJONGHU</p>
+            <h1 id="intro-title">
+              Selamat datang di <em>ruang kerja.</em>
+            </h1>
+            <p className={styles.introCopy}>
+              Satu tempat untuk melihat aktivitas dan mengelola operasional
+              MahjongHu.
             </p>
-          )}
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Memeriksa…" : "Masuk"}
-          </button>
-        </form>
-      </section>
+            <div className={styles.tiles} aria-hidden="true">
+              <span className={styles.tile}><i /><i /><i /></span>
+              <span className={styles.tile}><i /><i /><i /><i /></span>
+              <span className={styles.tile}><i /><i /></span>
+            </div>
+          </section>
+
+          <section className={styles.card} aria-labelledby="login-title">
+            <div className={styles.cardHeading}>
+              <span className={styles.cardEyebrow}>AKSES DASHBOARD</span>
+              <h2 id="login-title">Masuk ke dashboard</h2>
+              <p>Gunakan akun owner untuk melanjutkan.</p>
+            </div>
+            <form onSubmit={submit} className={styles.form}>
+              <label className={styles.field}>
+                <span>Email</span>
+                <input
+                  autoComplete="username"
+                  type="email"
+                  placeholder="nama@email.com"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </label>
+              <label className={styles.field}>
+                <span>Password</span>
+                <input
+                  autoComplete="current-password"
+                  type="password"
+                  placeholder="Masukkan password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </label>
+              {error && (
+                <p className={styles.error} role="alert">
+                  {error}
+                </p>
+              )}
+              <button type="submit" disabled={submitting}>
+                {submitting ? "Memeriksa…" : "Masuk ke dashboard"}
+                <span aria-hidden="true">↗</span>
+              </button>
+            </form>
+            <div className={styles.cardFooter}>
+              <span>Hanya untuk tim internal MahjongHu</span>
+              <Link href="/">Kembali ke beranda <span aria-hidden="true">↗</span></Link>
+            </div>
+          </section>
+        </div>
+        <footer className={styles.footer}>© MahjongHu · Business Space</footer>
+      </div>
     </main>
   );
 }

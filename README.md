@@ -11,6 +11,8 @@ npm run dev
 
 Open http://localhost:3000 for the public entry page. Dashboard routes under `/dashboard` require an owner account created by a trusted backend administrator; sign in at `/dashboard/login`.
 
+The owner login screen uses a responsive split layout on desktop and a stacked layout on mobile. Its warm neutral background, white form card, and green actions retain the existing palette; the form still authenticates against `POST /auth/login`.
+
 ```bash
 npx tsc --noEmit
 npm run lint
