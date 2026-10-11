@@ -1,55 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import styles from "./page.module.css";
 import BookingSchedule from "./booking-schedule";
 import { formatRupiah as money } from "../lib/currency";
+import { apiRequest } from "../lib/api";
 
-const outlets = [
-  {
-    id: "senopati",
-    name: "Senopati Social Club",
-    city: "Jakarta",
-    area: "Senopati, Jakarta Selatan",
-    address: "Jl. Senopati No. 38, Jakarta Selatan",
-    image: "/outlet-senopati.jpg",
-    label: "THE ORIGINAL",
-    description:
-      "Sudut hangat di tengah kota. Tempat cerita dan permainan baik dimulai.",
-    price: 75000,
-    tables: 8,
-    features: ["Private room", "Coffee & bites"],
-  },
-  {
-    id: "pik",
-    name: "PIK Garden House",
-    city: "Jakarta",
-    area: "Pantai Indah Kapuk, Jakarta Utara",
-    address: "Jl. Garden House No. 12, Pantai Indah Kapuk",
-    image: "/outlet-pik.jpg",
-    label: "A BREATH OF FRESH AIR",
-    description:
-      "Suasana santai, cahaya alami, dan satu ronde lagi bersama teman.",
-    price: 85000,
-    tables: 6,
-    features: ["Garden view", "Private room"],
-  },
-  {
-    id: "bandung",
-    name: "Dago Hideaway",
-    city: "Bandung",
-    area: "Dago, Bandung",
-    address: "Jl. Ir. H. Juanda No. 85, Bandung",
-    image: "/outlet-bandung.jpg",
-    label: "YOUR LITTLE ESCAPE",
-    description:
-      "Udara sejuk Bandung bertemu kehangatan meja mahjong favoritmu.",
-    price: 60000,
-    tables: 5,
-    features: ["Cozy lounge", "Coffee & bites"],
-  },
-];
+type OutletRecord = { id: string; name: string; city: string; address: string };
+type TableRecord = { id: string; outletId: string; name: string; rate: number };
+type Outlet = OutletRecord & {
+  tables: TableRecord[];
+  price: number;
+  image: string;
+};
+
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
   return <span aria-hidden="true">{diagonal ? "↗" : "→"}</span>;
 }
@@ -65,17 +30,49 @@ export default function Home() {
 
 function BookingPage() {
   const [city, setCity] = useState("Semua kota");
-  const [outletId, setOutletId] = useState(outlets[0].id);
-  const outlet = outlets.find((item) => item.id === outletId)!;
-  const visibleOutlets = outlets.filter(
-    (item) => city === "Semua kota" || item.city === city,
-  );
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
+  const [outletId, setOutletId] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let current = true;
+    Promise.all([
+      apiRequest<OutletRecord[]>("/outlets/public"),
+      apiRequest<TableRecord[]>("/tables/public"),
+    ])
+      .then(([records, tables]) => {
+        if (!current) return;
+        const loaded = records.map((record, index) => {
+          const outletTables = tables.filter((table) => table.outletId === record.id);
+          return {
+            ...record,
+            tables: outletTables,
+            price: outletTables.length ? Math.min(...outletTables.map((table) => table.rate)) : 0,
+            image: ["/outlet-senopati.jpg", "/outlet-pik.jpg", "/outlet-bandung.jpg"][index % 3],
+          };
+        });
+        setOutlets(loaded);
+        setOutletId(loaded[0]?.id ?? "");
+      })
+      .catch(() => {
+        if (current) setError("Data outlet belum dapat dimuat. Coba lagi nanti.");
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  const outlet = outlets.find((item) => item.id === outletId);
+  const visibleOutlets = outlets.filter((item) => city === "Semua kota" || item.city === city);
 
   function chooseOutlet(id: string) {
     setOutletId(id);
     document.getElementById("booking")?.scrollIntoView({ block: "start" });
   }
-
   return (
     <main className={styles.page}>
       <div className={styles.announcement}>
@@ -199,12 +196,14 @@ function BookingPage() {
         </div>
       </section>
 
-      <BookingSchedule
-        key={outlet.id}
-        outlet={outlet}
-        outlets={outlets}
-        onOutletChange={setOutletId}
-      />
+      {outlet && (
+        <BookingSchedule
+          key={outlet.id}
+          outlet={{ id: outlet.id, name: outlet.name, address: outlet.address, tables: outlet.tables.length, tableNames: outlet.tables.map((table) => table.name), price: outlet.price }}
+          outlets={outlets.map((item) => ({ id: item.id, name: item.name, address: item.address, tables: item.tables.length, tableNames: item.tables.map((table) => table.name), price: item.price }))}
+          onOutletChange={setOutletId}
+        />
+      )}
 
       <section id="outlets" className={styles.outlets}>
         <div className={styles.sectionHeading}>
@@ -224,7 +223,7 @@ function BookingPage() {
         </div>
         <div className={styles.filters}>
           <div role="group" aria-label="Filter kota">
-            {["Semua kota", "Jakarta", "Bandung"].map((item) => (
+            {["Semua kota", ...new Set(outlets.map((item) => item.city))].map((item) => (
               <button
                 key={item}
                 aria-pressed={city === item}
@@ -232,7 +231,7 @@ function BookingPage() {
                 onClick={() => setCity(item)}
               >
                 {item}
-                {item === "Semua kota" && <span>3</span>}
+                {item === "Semua kota" && <span>{outlets.length}</span>}
               </button>
             ))}
           </div>
@@ -240,6 +239,11 @@ function BookingPage() {
             {visibleOutlets.length} tempat untuk good times <Arrow diagonal />
           </span>
         </div>
+        {loading && <p role="status">Memuat data outlet dan meja...</p>}
+        {error && <p role="alert">{error}</p>}
+        {!loading && !error && outlets.length === 0 && (
+          <p>Belum ada outlet aktif.</p>
+        )}
         <div className={styles.outletGrid}>
           {visibleOutlets.map((item) => (
             <article className={styles.outletCard} key={item.id}>
@@ -251,23 +255,20 @@ function BookingPage() {
                   sizes="(max-width: 650px) 100vw, (max-width: 1000px) 50vw, 33vw"
                 />
                 <span className={styles.imageBadge}>
-                  <span /> {item.tables} meja · demo
+                  <span /> {item.tables.length} meja
                 </span>
                 <span className={styles.imageIndex}>
                   0{outlets.indexOf(item) + 1}
                 </span>
               </div>
               <div className={styles.cardBody}>
-                <p className={styles.cardLabel}>{item.label}</p>
+                <p className={styles.cardLabel}>{item.city}</p>
                 <h3>{item.name}</h3>
                 <p className={styles.location}>
-                  <span aria-hidden="true">⌖</span> {item.area}
+                  <span aria-hidden="true">⌖</span> {item.address}
                 </p>
-                <p className={styles.cardDescription}>{item.description}</p>
+                <p className={styles.cardDescription}>{item.tables.length} meja tersedia di outlet ini.</p>
                 <div className={styles.features}>
-                  {item.features.map((feature) => (
-                    <span key={feature}>{feature}</span>
-                  ))}
                   <span>4 pemain / meja</span>
                 </div>
                 <div className={styles.cardFooter}>

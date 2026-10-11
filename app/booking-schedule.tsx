@@ -9,6 +9,7 @@ type Outlet = {
   name: string;
   address: string;
   tables: number;
+  tableNames: string[];
   price: number;
 };
 type Slot = { table: number; hour: number };
@@ -65,6 +66,8 @@ export default function BookingSchedule({
   const [preview, setPreview] = useState(false);
   const receipt = useRef<HTMLHeadingElement>(null);
   const dateInput = useRef<HTMLInputElement>(null);
+  const nameOfTable = (table: number) =>
+    outlet.tableNames[table - 1] ?? tableLabel(table);
   const sessions = sessionsFor(selected);
   const tableCount = new Set(selected.map((slot) => slot.table)).size;
   const total = selected.length * outlet.price;
@@ -221,7 +224,7 @@ export default function BookingSchedule({
                         ▦
                       </span>
                       <span>
-                        {tableLabel(table)}
+                        {nameOfTable(table)}
                         <small>4 pemain</small>
                       </span>
                     </th>
@@ -239,7 +242,7 @@ export default function BookingSchedule({
                             className={`${styles.slot} ${booked ? styles.booked : active ? styles.selected : ""}`}
                             disabled={!validDate || booked}
                             aria-pressed={active}
-                            aria-label={`${tableLabel(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${booked ? "terisi" : active ? "dipilih, klik untuk hapus" : "tersedia"}`}
+                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${booked ? "terisi" : active ? "dipilih, klik untuk hapus" : "tersedia"}`}
                             onClick={() => toggleSlot(table, hour)}
                           >
                             <span aria-hidden="true">
@@ -297,7 +300,7 @@ export default function BookingSchedule({
                 {sessions.map((session) => (
                   <li key={`${session.table}-${session.start}`}>
                     <div>
-                      <strong>{tableLabel(session.table)}</strong>
+                      <strong>{nameOfTable(session.table)}</strong>
                       <span>
                         {hourLabel(session.start)}–{hourLabel(session.end)} ·{" "}
                         {session.end - session.start} jam
@@ -310,7 +313,7 @@ export default function BookingSchedule({
                     </div>
                     <button
                       type="button"
-                      aria-label={`Hapus ${tableLabel(session.table)} jam ${hourLabel(session.start)}–${hourLabel(session.end)}`}
+                      aria-label={`Hapus ${nameOfTable(session.table)} jam ${hourLabel(session.start)}–${hourLabel(session.end)}`}
                       onClick={() => {
                         setSelected((current) =>
                           current.filter(
@@ -376,7 +379,7 @@ export default function BookingSchedule({
             {sessions.map((session) => (
               <div key={`${session.table}-${session.start}`}>
                 <span>
-                  <strong>{tableLabel(session.table)}</strong>
+                  <strong>{nameOfTable(session.table)}</strong>
                   <small>
                     {hourLabel(session.start)}–{hourLabel(session.end)} ·{" "}
                     {session.end - session.start} jam ×{" "}

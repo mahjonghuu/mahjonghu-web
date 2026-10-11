@@ -21,18 +21,11 @@ npm run build
 
 ## Public booking preview
 
-The public route (`app/page.tsx`) is a responsive, frontend-only booking experience, separate from the internal workspace.
-
-- Discover three fictional outlets across Jakarta and Bandung, with city filters, atmosphere images, amenities, and hourly prices.
-- Booking uses the inline table-by-hour schedule in `app/booking-schedule.tsx`, not a modal. Choose an outlet and local date (or use “Hari ini”), then toggle any available one-hour cells from 12:00 through 22:00 across multiple tables.
-- A selection belongs to one outlet and date. Changing either clears the plan. Occupied demo cells and cells without a valid current/future date cannot be selected; demo occupancy varies deterministically by outlet, date, and table.
-- The live summary groups adjacent hours on the same table, preserves gaps as separate sessions, and supports removing individual sessions or all selections. The estimate is selected table-hours multiplied by the outlet's hourly rate, with no additional demo fees.
-- The inline payment preview lists every session and its subtotal. Editing the plan dismisses the old preview; no actual checkout or reservation takes place.
-- Whole-rupiah prices share `lib/currency.ts` and use deterministic `Rp 75.000` formatting rather than runtime currency formatting, avoiding hydration mismatches between server and browser ICU versions.
-- All availability, prices, addresses, and outlet details are demo data. No API requests, reservations, payments, or persistence are implemented; reloading resets the plan.
+- The public page fetches active outlets from `GET /outlets/public` and their tables and hourly rates from `GET /tables/public`. City filters, table counts, table names, and minimum hourly prices use those API responses.
+- Outlet photos remain illustrative local imagery; descriptions/amenities are not supplied by the API and are not presented as live outlet details.
+- The booking schedule uses the fetched table names and minimum rate, but its occupancy remains deterministic demo data. No actual reservation or payment is persisted.
 - Schedule cells are keyboard-operable buttons in a semantic table. On narrow screens the grid scrolls horizontally with sticky table labels, and the summary moves below the schedule without page-level horizontal overflow. Schedule styling lives in `app/booking-schedule.module.css`; landing-page styling remains in `app/page.module.css`. The Tailwind Turbopack loader targets `globals.css` so native CSS Modules retain their class exports.
 - Local outlet photos are illustrative restaurant interiors from Unsplash, not photographs of actual MahjongHu branches: photo IDs `1517248135467-4c7edcad34c4`, `1559339352-11d035aa65de`, and `1552566626-52f8b828add9`.
-
 
 ## Dashboard PoC plan and implementation
 
@@ -57,7 +50,7 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 - `app/dashboard/model.ts` defines outlet, table, and paid-transaction shapes plus the sample data for still-demo modules.
 - `app/dashboard/layout.tsx` provides shared navigation and in-memory state across the dashboard routes.
 - `app/dashboard/booking/page.tsx` reads persisted booking records from `GET /bookings`; `app/dashboard/table/page.tsx` and `app/dashboard/revenue/page.tsx` remain demo-only.
-- Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
+- Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`; an unset or blank value falls back to `http://localhost:3001`. Restart Next.js after changing this build-time variable. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
 - Outlet list, create, edit, and archive requests use `GET`, `POST`, `PATCH`, and `DELETE /outlets`; booking records load through the dashboard-only `GET /bookings` endpoint.
 - The table-management and revenue-report screens remain demo-only: their 12 sample tables and 24 sample transactions do not come from the backend.
 - `public/logo.webp` is the supplied original. `public/logo-transparent.webp` removes its black background while preserving the artwork with alpha transparency; the dashboard and browser icon use this variant. Keep the original file unchanged.
