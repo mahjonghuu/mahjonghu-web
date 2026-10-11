@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { apiRequest } from "../../lib/api";
 import type { ReactNode } from "react";
-import { Badge, Icon } from "./components";
+import { Icon } from "./components";
 import { WorkspaceProvider } from "./workspace-state";
 import "./workspace.css";
 
@@ -18,6 +19,7 @@ const navigation = [
 
 function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const active =
     navigation.find((item) => item.href === pathname) ?? navigation[0];
 
@@ -83,8 +85,21 @@ function DashboardShell({ children }: { children: ReactNode }) {
             <strong>{active.label}</strong>
           </div>
           <div className="topbar-right">
-            <Badge>Frontend PoC</Badge>
-            <span className="avatar small-avatar">AD</span>
+            <button
+              type="button"
+              onClick={() => {
+                void apiRequest<{ loggedOut: boolean }>("/auth/logout", {
+                  method: "POST",
+                })
+                  .catch(() => undefined)
+                  .finally(() => {
+                    router.replace("/dashboard/login");
+                    router.refresh();
+                  });
+              }}
+>
+              Keluar
+            </button>
           </div>
         </header>
         <main className="main-content">
@@ -103,11 +118,16 @@ function DashboardShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Keeps dashboard navigation and demo data mounted across route changes. */
+/** Provides dashboard navigation and in-memory demo state across route changes. */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   return (
     <WorkspaceProvider>
-      <DashboardShell>{children}</DashboardShell>
+      {pathname === "/dashboard/login" ? (
+        children
+      ) : (
+        <DashboardShell>{children}</DashboardShell>
+      )}
     </WorkspaceProvider>
   );
 }

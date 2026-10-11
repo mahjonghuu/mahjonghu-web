@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 for the public entry page or http://localhost:3000/dashboard for the internal frontend proof of concept.
+Open http://localhost:3000 for the public entry page. Dashboard routes under `/dashboard` require an owner account created by a trusted backend administrator; sign in at `/dashboard/login`.
 
 ```bash
 npx tsc --noEmit
@@ -66,4 +66,4 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 
 ## Security and scope
 
-The outlet CRUD and booking-list APIs are unauthenticated and restricted to a backend listening on `127.0.0.1` in local development. They must not be exposed or deployed before owner authentication is implemented. The booking list includes customer contact details for the internal dashboard. Table management and reports are still demo data, not operational records. Production requires server-side role authorization and payment integration. The public booking page is still a frontend-only preview.
+Dashboard login is handled by backend `POST /auth/login`, which sets an eight-hour `HttpOnly`, `SameSite=Strict` JWT cookie; the token is not exposed to client JavaScript. `proxy.ts` validates that session with backend `GET /auth/me` before serving any `/dashboard` route except `/dashboard/login`. Browser API requests include the cookie, and backend guards enforce owner authorization independently. Logout clears the cookie through `POST /auth/logout`. Keep the web app and API same-site and configure credentialed CORS using `WEB_ORIGIN`; owner provisioning and `JWT_SECRET` setup are documented in `../mahjonghu-backend/README.md`. There is no public registration or role-promotion flow. Table management and reports remain demo data; the public booking page remains a frontend-only preview.
