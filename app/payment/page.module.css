@@ -1,0 +1,582 @@
+.page {
+  --ink: #203f35;
+  --muted: #778174;
+  --line: #d9ddce;
+  --orange: #d57047;
+  min-height: 100vh;
+  background: #f8f7f2;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+.page :focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 4px;
+}
+
+.header {
+  height: 92px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 48px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -1px;
+}
+
+.brand img {
+  object-fit: contain;
+}
+
+.brand span span {
+  color: var(--orange);
+}
+
+.headerLabel,
+.step,
+.eyebrow,
+.sectionIndex,
+.summaryHeading,
+.location span,
+.footer {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.7px;
+}
+
+.headerLabel {
+  color: var(--muted);
+}
+
+.content {
+  max-width: 1184px;
+  padding: 0 32px 48px;
+  margin: 0 auto;
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 35px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.back span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #bbc6b6;
+  border-radius: 50%;
+  font-size: 17px;
+  font-weight: 400;
+  transition: background 0.2s;
+}
+
+.back:hover span {
+  background: #e3e9dd;
+}
+
+.step {
+  color: #87917f;
+}
+
+.intro {
+  max-width: 760px;
+  padding: 55px 0 44px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 16px;
+}
+
+.eyebrow span {
+  width: 25px;
+  height: 1px;
+  background: var(--orange);
+}
+
+.intro h1 {
+  font:
+    400 clamp(40px, 5vw, 63px)/1.08 Georgia,
+    "Times New Roman",
+    serif;
+  letter-spacing: -2.6px;
+  margin: 0;
+}
+
+.intro h1 em {
+  color: var(--orange);
+  font-weight: 400;
+}
+
+.intro > p:last-child {
+  max-width: 580px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.87fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.contact,
+.summary,
+.empty {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fffef9;
+}
+
+.contact {
+  padding: 37px 40px 35px;
+}
+
+.sectionIndex {
+  color: #9a704f;
+}
+
+.cardHeading h2 {
+  margin: 16px 0 8px;
+  font:
+    400 32px/1.15 Georgia,
+    "Times New Roman",
+    serif;
+  letter-spacing: -0.8px;
+}
+
+.cardHeading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.fields {
+  display: grid;
+  gap: 22px;
+  margin: 35px 0 34px;
+}
+
+.fields label {
+  display: grid;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fields input {
+  width: 100%;
+  height: 49px;
+  padding: 0 15px;
+  border: 1px solid #d6ddce;
+  border-radius: 5px;
+  background: #fcfcf8;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.fields input::placeholder {
+  color: #9da699;
+}
+
+.fields input:hover,
+.fields input:focus {
+  border-color: #7a9277;
+  background: #fff;
+}
+
+.action {
+  padding-top: 25px;
+  border-top: 1px solid #e4e7dc;
+}
+
+.action button {
+  width: 100%;
+  text-align: left;
+  padding: 15px 17px;
+  border: 0;
+  border-radius: 5px;
+  background: #658073;
+  color: #fffbed;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
+.action p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.summaryTop {
+  background: #203f35;
+  color: #fffbed;
+  padding: 30px 31px 28px;
+}
+
+.summaryHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #d9e1cd;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 39px;
+  border: 1px solid #849b80;
+  border-radius: 4px;
+  box-shadow: 0 3px 0 #849b80;
+  color: #f6ead4;
+  font:
+    22px Georgia,
+    serif;
+}
+
+.summaryTop h2 {
+  margin: 26px 0 28px;
+  font:
+    400 35px/1.16 Georgia,
+    "Times New Roman",
+    serif;
+  letter-spacing: -1px;
+}
+
+.summaryTop h2 em {
+  color: #dca27b;
+  font-weight: 400;
+}
+
+.location {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  border-top: 1px solid #547066;
+  padding-top: 22px;
+}
+
+.location div {
+  min-width: 0;
+}
+
+.location span,
+.location strong {
+  display: block;
+}
+
+.location span {
+  color: #c7d3bf;
+  font-size: 9px;
+}
+
+.location strong {
+  margin-top: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.summaryBody {
+  padding: 27px 31px 29px;
+}
+
+.listHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.listHeading strong {
+  font-size: 12px;
+}
+
+.listHeading span {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.sessions {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+}
+
+.sessions li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 17px 0;
+  border-bottom: 1px solid #e5e9df;
+}
+
+.sessions li > div {
+  min-width: 0;
+}
+
+.sessions strong {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sessions li > div strong {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sessions li span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.total > span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.total small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.total > strong {
+  font-size: clamp(21px, 2.4vw, 29px);
+  letter-spacing: -0.9px;
+  white-space: nowrap;
+}
+
+.summaryNote {
+  margin: 24px 0 0;
+  padding: 13px 15px;
+  border-radius: 5px;
+  background: #f2f3ea;
+  color: #677861;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.empty {
+  padding: 50px;
+  max-width: 650px;
+}
+
+.empty > span {
+  color: #819476;
+  font-size: 35px;
+}
+
+.empty h2 {
+  font:
+    400 29px Georgia,
+    serif;
+  margin: 15px 0 10px;
+}
+
+.empty p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.empty a {
+  display: inline-flex;
+  justify-content: space-between;
+  gap: 38px;
+  margin-top: 17px;
+  padding: 13px 18px;
+  background: var(--ink);
+  color: #fffbed;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.footer {
+  margin-top: 52px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  color: #87917f;
+  text-align: center;
+  font-size: 9px;
+}
+
+.footer span {
+  padding: 0 8px;
+  color: var(--orange);
+}
+
+@media (max-width: 850px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .summary {
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    height: 76px;
+    padding: 0 20px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+
+  .brand img {
+    width: 46px;
+    height: 46px;
+  }
+
+  .headerLabel {
+    font-size: 8px;
+    letter-spacing: 0.7px;
+  }
+
+  .content {
+    padding: 0 18px 30px;
+  }
+
+  .topline {
+    padding-top: 24px;
+  }
+
+  .step {
+    display: none;
+  }
+
+  .intro {
+    padding: 42px 0 31px;
+  }
+
+  .intro h1 {
+    font-size: 43px;
+    letter-spacing: -1.8px;
+  }
+
+  .intro > p:last-child {
+    font-size: 12px;
+  }
+
+  .contact {
+    padding: 29px 24px;
+  }
+
+  .cardHeading h2 {
+    font-size: 28px;
+  }
+
+  .fields {
+    gap: 20px;
+    margin: 28px 0;
+  }
+
+  .fields input {
+    font-size: 16px;
+  }
+
+  .summaryTop,
+  .summaryBody {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .summaryTop h2 {
+    font-size: 32px;
+  }
+
+  .empty {
+    padding: 32px 24px;
+  }
+
+  .footer {
+    margin-top: 38px;
+  }
+}
+
+@media (max-width: 370px) {
+  .headerLabel {
+    display: none;
+  }
+
+  .location {
+    gap: 12px;
+  }
+
+  .listHeading {
+    display: block;
+  }
+
+  .listHeading span {
+    display: block;
+    margin-top: 6px;
+  }
+}

@@ -26,6 +26,7 @@ npm run build
 - After a date is selected, the booking schedule queries `GET /bookings/availability` for each future one-hour slot. Unavailable slots cannot be selected; table-specific rates are used in estimates.
 - The schedule is an availability preview only. It does not create a booking hold or persist a reservation or payment.
 - Schedule cells are keyboard-operable buttons in a semantic table. On narrow screens the grid scrolls horizontally with sticky table labels, and the summary moves below the schedule without page-level horizontal overflow. Schedule styling lives in `app/booking-schedule.module.css`; landing-page styling remains in `app/page.module.css`. The Tailwind Turbopack loader targets `globals.css` so native CSS Modules retain their class exports.
+- The public `/payment` page presents the selected outlet, date, table sessions, and estimated rental total alongside name, phone, and email fields. It is a responsive preview, not a checkout: the contact fields are not submitted, and no booking or payment is created. Without a selection, the page links back to the schedule. The schedule selection is kept in session storage when returning to the booking page.
 - Local outlet photos are illustrative restaurant interiors from Unsplash, not photographs of actual MahjongHu branches: photo IDs `1517248135467-4c7edcad34c4`, `1559339352-11d035aa65de`, and `1552566626-52f8b828add9`.
 
 ## Dashboard PoC plan and implementation

@@ -53,7 +53,19 @@ function BookingPage() {
           };
         });
         setOutlets(loaded);
-        setOutletId(loaded[0]?.id ?? "");
+        let storedOutletId = "";
+        try {
+          storedOutletId = JSON.parse(
+            sessionStorage.getItem("mahjonghu:booking-state") ?? "null",
+          )?.outletId ?? "";
+        } catch {
+          sessionStorage.removeItem("mahjonghu:booking-state");
+        }
+        setOutletId(
+          loaded.some((item) => item.id === storedOutletId)
+            ? storedOutletId
+            : loaded[0]?.id ?? "",
+        );
       })
       .catch(() => {
         if (current) setError("Data outlet belum dapat dimuat. Coba lagi nanti.");

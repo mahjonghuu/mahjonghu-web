@@ -1,6 +1,7 @@
-"use client";
+ "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { formatRupiah } from "../lib/currency";
 import {
   BOOKING_HOURS,
@@ -21,11 +22,11 @@ export default function BookingSchedule({
   outlets: BookingOutlet[];
   onOutletChange: (id: string) => void;
 }) {
+  const router = useRouter();
   const booking = useBooking(outlet);
   const {
     date,
     selected,
-    preview,
     sessions,
     tableCount,
     total,
@@ -41,10 +42,8 @@ export default function BookingSchedule({
     toggleSlot,
     clearSelection,
     removeSession,
-    showPreview,
     retryAvailability,
   } = booking;
-  const receipt = useRef<HTMLHeadingElement>(null);
   const dateInput = useRef<HTMLInputElement>(null);
 
   return (
@@ -315,11 +314,25 @@ export default function BookingSchedule({
             type="button"
             disabled={!selected.length || !validDate}
             onClick={() => {
-              showPreview();
-              requestAnimationFrame(() => {
-                receipt.current?.scrollIntoView({ block: "center" });
-                receipt.current?.focus({ preventScroll: true });
+              const params = new URLSearchParams({
+                outlet: outlet.name,
+                date,
+                total: String(total),
+                tables: String(tableCount),
+                hours: String(selected.length),
+                sessions: JSON.stringify(
+                  sessions.map((session) => ({
+                    table: nameOfTable(session.table),
+                    start: hourLabel(session.start),
+                    end: hourLabel(session.end),
+                    hours: session.end - session.start,
+                    amount:
+                      (session.end - session.start) *
+                      rateOfTable(session.table),
+                  })),
+                ),
               });
+              router.push(`/payment?${params}`);
             }}
           >
             Lihat rincian pembayaran <span aria-hidden="true">↗</span>
@@ -330,53 +343,6 @@ export default function BookingSchedule({
           </p>
         </aside>
       </div>
-      {preview && (
-        <section className={styles.receipt} aria-labelledby="payment-title">
-          <div className={styles.receiptHeading}>
-            <div>
-              <p className={styles.eyebrow}>ALL SET, ON PAPER.</p>
-              <h3 id="payment-title" ref={receipt} tabIndex={-1}>
-                Rincian pembayaran demo
-              </h3>
-              <p>
-                {outlet.name} · {date.split("-").reverse().join(" / ")}
-              </p>
-            </div>
-            <span className={styles.demoBadge}>BELUM DIBAYAR · DEMO</span>
-          </div>
-          <div className={styles.receiptRows}>
-            {sessions.map((session) => (
-              <div key={`${session.table}-${session.start}`}>
-                <span>
-                  <strong>{nameOfTable(session.table)}</strong>
-                  <small>
-                    {hourLabel(session.start)}–{hourLabel(session.end)} ·{" "}
-                    {session.end - session.start} jam ×{" "}
-                    {formatRupiah(rateOfTable(session.table))}
-                  </small>
-                </span>
-                <strong>
-                  {formatRupiah(
-                    (session.end - session.start) * rateOfTable(session.table),
-                  )}
-                </strong>
-              </div>
-            ))}
-          </div>
-          <div className={styles.receiptTotal}>
-            <span>
-              {tableCount} meja · {selected.length} jam-meja
-              <strong>Total estimasi</strong>
-            </span>
-            <strong>{formatRupiah(total)}</strong>
-          </div>
-          <p className={styles.disclaimer}>
-            Total demo hanya menghitung sewa meja. Ini bukan bukti reservasi
-            atau tagihan nyata; belum ada integrasi pembayaran. Mengubah pilihan
-            akan menutup rincian ini.
-          </p>
-        </section>
-      )}
       <p className={styles.demoFootnote}>
         Tarif berasal dari backend; status slot diperiksa langsung untuk outlet
         dan tanggal yang dipilih. Pilihan belum membuat reservasi atau hold.

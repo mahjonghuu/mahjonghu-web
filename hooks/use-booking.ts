@@ -3,6 +3,9 @@ import { apiRequest } from "@/lib/api";
 
 type Slot = { table: number; hour: number };
 type BookingSession = { table: number; start: number; end: number };
+
+const BOOKING_STATE_KEY = "mahjonghu:booking-state";
+type StoredBooking = { outletId: string; date: string; selected: Slot[] };
 /** Outlet data required to query availability and calculate a booking estimate. */
 export type BookingOutlet = {
   id: string;
@@ -53,6 +56,29 @@ function sessionsFor(slots: Slot[]): BookingSession[] {
 export function useBooking(outlet: BookingOutlet) {
   const [date, setDate] = useState("");
   const [selected, setSelected] = useState<Slot[]>([]);
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(
+        sessionStorage.getItem(BOOKING_STATE_KEY) ?? "null",
+      ) as StoredBooking | null;
+      if (stored?.outletId === outlet.id) {
+        setDate(stored.date);
+        setSelected(stored.selected);
+      }
+    } catch {
+      sessionStorage.removeItem(BOOKING_STATE_KEY);
+    }
+    setRestored(true);
+  }, [outlet.id]);
+
+  useEffect(() => {
+    if (!restored) return;
+    sessionStorage.setItem(
+      BOOKING_STATE_KEY,
+      JSON.stringify({ outletId: outlet.id, date, selected }),
+    );
+  }, [date, outlet.id, restored, selected]);
   const [preview, setPreview] = useState(false);
   const [availability, setAvailability] = useState<
     | { key: string; status: "success"; byHour: Record<number, string[]> }
