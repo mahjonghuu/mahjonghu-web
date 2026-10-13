@@ -33,6 +33,8 @@ export function useTables() {
         city: outlet.city,
         address: outlet.address,
         active: Boolean(outlet.active ?? outlet.isActive),
+        openingHour: Number(outlet.openingHour ?? 12),
+        closingHour: Number(outlet.closingHour ?? 22),
       })),
     );
     setTables(tableRecords);
@@ -50,6 +52,8 @@ export function useTables() {
             city: outlet.city,
             address: outlet.address,
             active: Boolean(outlet.active ?? outlet.isActive),
+            openingHour: Number(outlet.openingHour ?? 12),
+            closingHour: Number(outlet.closingHour ?? 22),
           })),
         );
         setTables(tableRecords);

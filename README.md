@@ -23,6 +23,7 @@ npm run build
 
 - The public page fetches active outlets from `GET /outlets/public` and their tables and hourly rates from `GET /tables/public`. City filters, table counts, table names, and minimum hourly prices use those API responses.
 - Outlet photos remain illustrative local imagery; descriptions/amenities are not supplied by the API and are not presented as live outlet details.
+- Each outlet's opening and closing hours are configured in the dashboard outlet editor; the public booking grid shows one-hour slots within those hours, and checkout validates the same local-time bounds.
 - After a date is selected, the booking schedule queries `GET /bookings/availability` for each future one-hour slot. Unavailable slots cannot be selected; table-specific rates are used in estimates.
 - Selecting slots is an availability preview. Submitting the `/payment` contact form creates one atomic backend hold per table session and one aggregate DOKU Checkout; each hold and the DOKU payment page expire after 15 minutes.
 - `/payment` displays the backend-priced booking estimate and collects guest name, phone, and email before redirecting to DOKU. The backend selects separate sandbox or production credentials; `NEXT_PUBLIC_DOKU_ENV` defaults to `dev` and must be set to `prod` at build time for production.

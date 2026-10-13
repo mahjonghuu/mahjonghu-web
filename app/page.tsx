@@ -7,7 +7,14 @@ import BookingSchedule from "./booking-schedule";
 import { formatRupiah as money } from "../lib/currency";
 import { apiRequest } from "../lib/api";
 
-type OutletRecord = { id: string; name: string; city: string; address: string };
+type OutletRecord = {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  openingHour: number;
+  closingHour: number;
+};
 type TableRecord = { id: string; outletId: string; name: string; rate: number };
 type Outlet = OutletRecord & {
   tables: TableRecord[];
@@ -44,31 +51,41 @@ function BookingPage() {
       .then(([records, tables]) => {
         if (!current) return;
         const loaded = records.map((record, index) => {
-          const outletTables = tables.filter((table) => table.outletId === record.id);
+          const outletTables = tables.filter(
+            (table) => table.outletId === record.id,
+          );
           return {
             ...record,
             tables: outletTables,
-            price: outletTables.length ? Math.min(...outletTables.map((table) => table.rate)) : 0,
-            image: ["/outlet-senopati.jpg", "/outlet-pik.jpg", "/outlet-bandung.jpg"][index % 3],
+            price: outletTables.length
+              ? Math.min(...outletTables.map((table) => table.rate))
+              : 0,
+            image: [
+              "/outlet-senopati.jpg",
+              "/outlet-pik.jpg",
+              "/outlet-bandung.jpg",
+            ][index % 3],
           };
         });
         setOutlets(loaded);
         let storedOutletId = "";
         try {
-          storedOutletId = JSON.parse(
-            sessionStorage.getItem("mahjonghu:booking-state") ?? "null",
-          )?.outletId ?? "";
+          storedOutletId =
+            JSON.parse(
+              sessionStorage.getItem("mahjonghu:booking-state") ?? "null",
+            )?.outletId ?? "";
         } catch {
           sessionStorage.removeItem("mahjonghu:booking-state");
         }
         setOutletId(
           loaded.some((item) => item.id === storedOutletId)
             ? storedOutletId
-            : loaded[0]?.id ?? "",
+            : (loaded[0]?.id ?? ""),
         );
       })
       .catch(() => {
-        if (current) setError("Data outlet belum dapat dimuat. Coba lagi nanti.");
+        if (current)
+          setError("Data outlet belum dapat dimuat. Coba lagi nanti.");
       })
       .finally(() => {
         if (current) setLoading(false);
@@ -79,7 +96,9 @@ function BookingPage() {
   }, []);
 
   const outlet = outlets.find((item) => item.id === outletId);
-  const visibleOutlets = outlets.filter((item) => city === "Semua kota" || item.city === city);
+  const visibleOutlets = outlets.filter(
+    (item) => city === "Semua kota" || item.city === city,
+  );
 
   function chooseOutlet(id: string) {
     setOutletId(id);
@@ -211,8 +230,30 @@ function BookingPage() {
       {outlet && (
         <BookingSchedule
           key={outlet.id}
-          outlet={{ id: outlet.id, name: outlet.name, address: outlet.address, tables: outlet.tables.length, tableIds: outlet.tables.map((table) => table.id), tableNames: outlet.tables.map((table) => table.name), tableRates: outlet.tables.map((table) => table.rate), price: outlet.price }}
-          outlets={outlets.map((item) => ({ id: item.id, name: item.name, address: item.address, tables: item.tables.length, tableIds: item.tables.map((table) => table.id), tableNames: item.tables.map((table) => table.name), tableRates: item.tables.map((table) => table.rate), price: item.price }))}
+          outlet={{
+            id: outlet.id,
+            name: outlet.name,
+            address: outlet.address,
+            tables: outlet.tables.length,
+            tableIds: outlet.tables.map((table) => table.id),
+            tableNames: outlet.tables.map((table) => table.name),
+            tableRates: outlet.tables.map((table) => table.rate),
+            price: outlet.price,
+            openingHour: outlet.openingHour,
+            closingHour: outlet.closingHour,
+          }}
+          outlets={outlets.map((item) => ({
+            id: item.id,
+            name: item.name,
+            address: item.address,
+            tables: item.tables.length,
+            tableIds: item.tables.map((table) => table.id),
+            tableNames: item.tables.map((table) => table.name),
+            tableRates: item.tables.map((table) => table.rate),
+            price: item.price,
+            openingHour: item.openingHour,
+            closingHour: item.closingHour,
+          }))}
           onOutletChange={setOutletId}
         />
       )}
@@ -235,17 +276,19 @@ function BookingPage() {
         </div>
         <div className={styles.filters}>
           <div role="group" aria-label="Filter kota">
-            {["Semua kota", ...new Set(outlets.map((item) => item.city))].map((item) => (
-              <button
-                key={item}
-                aria-pressed={city === item}
-                className={city === item ? styles.activeFilter : ""}
-                onClick={() => setCity(item)}
-              >
-                {item}
-                {item === "Semua kota" && <span>{outlets.length}</span>}
-              </button>
-            ))}
+            {["Semua kota", ...new Set(outlets.map((item) => item.city))].map(
+              (item) => (
+                <button
+                  key={item}
+                  aria-pressed={city === item}
+                  className={city === item ? styles.activeFilter : ""}
+                  onClick={() => setCity(item)}
+                >
+                  {item}
+                  {item === "Semua kota" && <span>{outlets.length}</span>}
+                </button>
+              ),
+            )}
           </div>
           <span aria-live="polite">
             {visibleOutlets.length} tempat untuk good times <Arrow diagonal />
@@ -279,7 +322,9 @@ function BookingPage() {
                 <p className={styles.location}>
                   <span aria-hidden="true">⌖</span> {item.address}
                 </p>
-                <p className={styles.cardDescription}>{item.tables.length} meja tersedia di outlet ini.</p>
+                <p className={styles.cardDescription}>
+                  {item.tables.length} meja tersedia di outlet ini.
+                </p>
                 <div className={styles.features}>
                   <span>4 pemain / meja</span>
                 </div>

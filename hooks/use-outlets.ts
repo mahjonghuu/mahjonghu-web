@@ -10,6 +10,8 @@ const toOutlet = (outlet: OutletApiRecord): Outlet => ({
   city: outlet.city,
   address: outlet.address,
   active: Boolean(outlet.active ?? outlet.isActive),
+  openingHour: Number(outlet.openingHour ?? 12),
+  closingHour: Number(outlet.closingHour ?? 22),
   tableCount: Number(outlet.tableCount ?? 0),
   occupiedTableCount: Number(outlet.occupiedTableCount ?? 0),
 });
@@ -69,9 +71,22 @@ export function useOutlets() {
     const name = String(fields.get("name") ?? "").trim();
     const city = String(fields.get("city") ?? "").trim();
     const address = String(fields.get("address") ?? "").trim();
+    const openingHour = Number(fields.get("openingHour"));
+    const closingHour = Number(fields.get("closingHour"));
     const active = fields.get("active") === "true";
-    if (!name || !city || !address) {
-      setError("Nama, kota, dan alamat wajib diisi.");
+    if (
+      !name ||
+      !city ||
+      !address ||
+      !Number.isInteger(openingHour) ||
+      !Number.isInteger(closingHour) ||
+      openingHour < 0 ||
+      openingHour > 23 ||
+      closingHour < 1 ||
+      closingHour > 24 ||
+      closingHour <= openingHour
+    ) {
+      setError("Isi data outlet dan pastikan jam tutup setelah jam buka.");
       return;
     }
     if (
@@ -88,7 +103,7 @@ export function useOutlets() {
     setSaving(true);
     setError("");
     try {
-      const input = { name, city, address, active };
+      const input = { name, city, address, active, openingHour, closingHour };
       if (editor) await outletApi.update(editor.id, input);
       else await outletApi.create(input);
       await refreshOutlets();

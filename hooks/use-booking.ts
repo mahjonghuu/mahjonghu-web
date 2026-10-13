@@ -10,17 +10,23 @@ type StoredBooking = { outletId: string; date: string; selected: Slot[] };
 export type BookingOutlet = {
   id: string;
   name: string;
+  tableNames: string[];
   address: string;
   tables: number;
   tableIds: string[];
-  tableNames: string[];
   tableRates: number[];
   price: number;
+  openingHour: number;
+  closingHour: number;
 };
 type AvailableTable = { tableId: string };
 
 /** Hour starts shown in the booking grid; each interval lasts one hour. */
-export const BOOKING_HOURS = Array.from({ length: 10 }, (_, index) => index + 12);
+export const bookingHours = (outlet: BookingOutlet) =>
+  Array.from(
+    { length: outlet.closingHour - outlet.openingHour },
+    (_, index) => outlet.openingHour + index,
+  );
 
 function today() {
   const date = new Date();
@@ -102,7 +108,10 @@ export function useBooking(outlet: BookingOutlet) {
   const tableCount = new Set(selected.map((slot) => slot.table)).size;
   const rateOfTable = (table: number) =>
     outlet.tableRates[table - 1] ?? outlet.price;
-  const total = selected.reduce((sum, slot) => sum + rateOfTable(slot.table), 0);
+  const total = selected.reduce(
+    (sum, slot) => sum + rateOfTable(slot.table),
+    0,
+  );
   const nameOfTable = (table: number) =>
     outlet.tableNames[table - 1] ?? tableLabel(table);
 
@@ -111,7 +120,7 @@ export function useBooking(outlet: BookingOutlet) {
 
     let current = true;
     Promise.all(
-      BOOKING_HOURS.map(async (hour) => {
+      bookingHours(outlet).map(async (hour) => {
         const startsAt = new Date(
           `${date}T${String(hour).padStart(2, "0")}:00:00`,
         );
@@ -148,7 +157,15 @@ export function useBooking(outlet: BookingOutlet) {
     return () => {
       current = false;
     };
-  }, [date, outlet.id, validDate, availabilityKey]);
+  }, [
+    date,
+    outlet.id,
+    outlet.openingHour,
+    outlet.closingHour,
+    validDate,
+    availabilityKey,
+    outlet,
+  ]);
 
   function isSlotAvailable(table: number, hour: number) {
     return Boolean(
@@ -185,7 +202,6 @@ export function useBooking(outlet: BookingOutlet) {
     setPreview(true);
   }
 
-
   function retryAvailability() {
     setAvailabilityAttempt((attempt) => attempt + 1);
   }
@@ -200,7 +216,6 @@ export function useBooking(outlet: BookingOutlet) {
     );
     setPreview(false);
   }
-
 
   return {
     date,

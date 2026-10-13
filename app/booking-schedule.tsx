@@ -1,10 +1,10 @@
- "use client";
+"use client";
 
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatRupiah } from "../lib/currency";
 import {
-  BOOKING_HOURS,
+  bookingHours,
   useBooking,
   type BookingOutlet,
 } from "@/hooks/use-booking";
@@ -44,6 +44,7 @@ export default function BookingSchedule({
     removeSession,
     retryAvailability,
   } = booking;
+  const hours = bookingHours(outlet);
   const dateInput = useRef<HTMLInputElement>(null);
 
   return (
@@ -168,7 +169,7 @@ export default function BookingSchedule({
               <thead>
                 <tr>
                   <th scope="col">MEJA / JAM</th>
-                  {BOOKING_HOURS.map((hour) => (
+                  {hours.map((hour) => (
                     <th scope="col" key={hour}>
                       {hourLabel(hour)}
                       <span>{hourLabel(hour + 1)}</span>
@@ -191,7 +192,7 @@ export default function BookingSchedule({
                         <small>4 pemain</small>
                       </span>
                     </th>
-                    {BOOKING_HOURS.map((hour) => {
+                    {hours.map((hour) => {
                       const available = isSlotAvailable(table, hour);
                       const unavailable = isSlotUnavailable(table, hour);
                       const blocked =

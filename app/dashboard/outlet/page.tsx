@@ -197,6 +197,36 @@ export default function OutletPage() {
                 <option value="false">Nonaktif</option>
               </select>
             </label>
+            <label>
+              Jam buka
+              <select
+                name="openingHour"
+                defaultValue={String(editor?.openingHour ?? 12)}
+                required
+              >
+                {Array.from({ length: 24 }, (_, hour) => (
+                  <option key={hour} value={hour}>
+                    {String(hour).padStart(2, "0")}:00
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Jam tutup
+              <select
+                name="closingHour"
+                defaultValue={String(editor?.closingHour ?? 22)}
+                required
+              >
+                {Array.from({ length: 24 }, (_, index) => index + 1).map(
+                  (hour) => (
+                    <option key={hour} value={hour}>
+                      {String(hour % 24).padStart(2, "0")}:00
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
             {error && (
               <p role="alert" className="form-error">
                 {error}

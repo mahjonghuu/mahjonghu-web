@@ -9,6 +9,8 @@ export type OutletApiRecord = {
   active?: boolean;
   isActive?: boolean;
   tableCount?: number;
+  openingHour: number;
+  closingHour: number;
   occupiedTableCount?: number;
 };
 
@@ -18,6 +20,8 @@ export type OutletInput = {
   city: string;
   address: string;
   active: boolean;
+  openingHour: number;
+  closingHour: number;
 };
 
 

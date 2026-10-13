@@ -4,6 +4,8 @@ export type Outlet = {
   name: string;
   city: string;
   address: string;
+  openingHour: number;
+  closingHour: number;
   active: boolean;
   tableCount?: number;
   occupiedTableCount?: number;
@@ -47,6 +49,8 @@ export function initialData(): WorkspaceData {
       city: "Jakarta Selatan",
       address: "Jl. Senopati No. 28, Kebayoran Baru",
       active: true,
+      openingHour: 12,
+      closingHour: 22,
     },
     {
       id: "o2",
@@ -54,6 +58,8 @@ export function initialData(): WorkspaceData {
       city: "Jakarta Utara",
       address: "Jl. Boulevard Raya No. 16, Kelapa Gading",
       active: true,
+      openingHour: 12,
+      closingHour: 22,
     },
     {
       id: "o3",
@@ -61,6 +67,8 @@ export function initialData(): WorkspaceData {
       city: "Tangerang Selatan",
       address: "Ruko The Icon, Blok B No. 12, BSD City",
       active: true,
+      openingHour: 12,
+      closingHour: 22,
     },
   ];
   const tables: MahjongTable[] = outlets.flatMap((outlet, index) =>
