@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { apiRequest } from "../../../../lib/api";
 import { formatRupiah } from "../../../../lib/currency";
 import styles from "./page.module.css";
@@ -38,40 +38,40 @@ function PaymentResultDetails() {
     : params.reference;
   const [payment, setPayment] = useState<PaymentStatus | null>(null);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
   const [now, setNow] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    const refresh = async () => {
+  const refresh = useCallback(
+    async (manual = true) => {
+      if (manual) setChecking(true);
       try {
         const next = await apiRequest<PaymentStatus>(
           `/payments/doku/status/${encodeURIComponent(reference)}`,
         );
-        if (active) {
-          setPayment(next);
-          setError("");
-        }
+        setPayment(next);
+        setError("");
       } catch (cause) {
-        if (active) {
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : "Status belum dapat dimuat.",
-          );
-        }
+        setError(
+          cause instanceof Error ? cause.message : "Status belum dapat dimuat.",
+        );
+      } finally {
+        if (manual) setChecking(false);
       }
-    };
-    void refresh();
+    },
+    [reference],
+  );
+
+  useEffect(() => {
+    const initialCheck = window.setTimeout(() => void refresh(false), 0);
     const poll = window.setInterval(() => {
-      if (payment?.status === "pending") void refresh();
+      if (payment?.status === "pending") void refresh(false);
     }, 3000);
     const clock = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
-      active = false;
       window.clearInterval(poll);
       window.clearInterval(clock);
+      window.clearTimeout(initialCheck);
     };
-  }, [reference, payment?.status]);
+  }, [payment?.status, refresh]);
 
   const remainingSeconds =
     payment?.status === "pending"
@@ -109,15 +109,26 @@ function PaymentResultDetails() {
             <p className={styles.eyebrow}>STATUS TIDAK TERSEDIA</p>
             <h1>Status pembayaran belum dapat dimuat.</h1>
             <p>{error}</p>
-            <button type="button" onClick={() => window.location.reload()}>
-              Coba lagi
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              disabled={checking}
+            >
+              {checking ? "Memeriksa…" : "Cek status pembayaran"}
             </button>
           </section>
         ) : !payment ? (
           <section className={styles.card} aria-live="polite">
             <p className={styles.eyebrow}>DOKU CHECKOUT</p>
             <h1>Memeriksa pembayaran…</h1>
-            <p>Menunggu status terverifikasi dari server.</p>
+            <p>Server belum merespons? Cek status pembayaran kembali.</p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              disabled={checking}
+            >
+              {checking ? "Memeriksa…" : "Cek status pembayaran"}
+            </button>
           </section>
         ) : (
           <>
@@ -160,6 +171,15 @@ function PaymentResultDetails() {
                     :{String(remainingSeconds % 60).padStart(2, "0")}
                   </strong>
                 </div>
+              )}
+              {payment.status === "pending" && (
+                <button
+                  type="button"
+                  onClick={() => void refresh()}
+                  disabled={checking}
+                >
+                  {checking ? "Memeriksa…" : "Cek status pembayaran"}
+                </button>
               )}
             </section>
             <section className={styles.details} aria-labelledby="details-title">
