@@ -1,16 +1,20 @@
-"use client";
+ "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import { useDOKU } from "../../hooks/use-doku";
 import { formatRupiah } from "../../lib/currency";
 import styles from "./page.module.css";
 
 type Session = {
   table: string;
+  tableId: string;
   start: string;
   end: string;
+  startsAt: string;
+  durationHours: number;
   hours: number;
   amount: number;
 };
@@ -18,7 +22,9 @@ type Session = {
 function PaymentDetails() {
   const params = useSearchParams();
   const outlet = params.get("outlet");
+  const outletId = params.get("outletId") ?? "";
   const date = params.get("date");
+  const { createCheckout, loading, error } = useDOKU();
   let sessions: Session[] = [];
   try {
     const parsed: unknown = JSON.parse(params.get("sessions") ?? "[]");
@@ -28,9 +34,31 @@ function PaymentDetails() {
   }
   const total = Number(params.get("total"));
   const hasSelection = Boolean(
-    outlet && date && sessions.length && Number.isFinite(total),
+    outlet &&
+    outletId &&
+    date &&
+    sessions.length &&
+    sessions.every((session) => session.tableId && session.startsAt) &&
+    Number.isFinite(total),
   );
+  const environment =
+    process.env.NEXT_PUBLIC_DOKU_ENV === "prod" ? "Production" : "Sandbox";
 
+  async function submitCheckout(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await createCheckout({
+      outletId,
+      customerName: String(form.get("name") ?? ""),
+      customerPhone: String(form.get("phone") ?? ""),
+      customerEmail: String(form.get("email") ?? ""),
+      sessions: sessions.map(({ tableId, startsAt, durationHours }) => ({
+        tableId,
+        startsAt,
+        durationHours,
+      })),
+    });
+  }
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -40,7 +68,7 @@ function PaymentDetails() {
             Mahjong<span>Hu</span>
           </span>
         </Link>
-        <span className={styles.headerLabel}>BOOKING PREVIEW / 02</span>
+        <span className={styles.headerLabel}>DOKU CHECKOUT / {environment.toUpperCase()}</span>
       </header>
 
       <div className={styles.content}>
@@ -60,18 +88,19 @@ function PaymentDetails() {
           </h1>
           <p>
             Cek kembali pilihan meja dan estimasi biaya, lalu lengkapi data
-            kontakmu. Ini masih simulasi, belum ada reservasi yang dibuat.
+            kontakmu. Pemesanan akan ditahan selama 15 menit setelah checkout dimulai.
           </p>
         </div>
 
         {hasSelection ? (
           <div className={styles.layout}>
             <section className={styles.contact} aria-labelledby="contact-title">
-              <div className={styles.cardHeading}>
-                <span className={styles.sectionIndex}>DATA KONTAK</span>
-                <h2 id="contact-title">Siapa yang akan main?</h2>
-                <p>Siapkan informasi kontak untuk rencana mainmu.</p>
-              </div>
+              <form onSubmit={submitCheckout}>
+                <div className={styles.cardHeading}>
+                  <span className={styles.sectionIndex}>DATA KONTAK</span>
+                  <h2 id="contact-title">Siapa yang akan main?</h2>
+                  <p>Data ini digunakan untuk membuat pembayaran DOKU.</p>
+                </div>
               <div className={styles.fields}>
                 <label>
                   <span>Nama lengkap</span>
@@ -104,16 +133,19 @@ function PaymentDetails() {
                     required
                   />
                 </label>
-              </div>
-              <div className={styles.action}>
-                <button type="button" disabled>
-                  Pembayaran belum tersedia
-                </button>
-                <p>
-                  Data kontak belum disimpan atau dikirim. Belum ada pembayaran
-                  maupun penahanan meja.
-                </p>
-              </div>
+                </div>
+                <div className={styles.action}>
+                  {error && <p className={styles.error} role="alert">{error}</p>}
+                  <button type="submit" disabled={loading}>
+                    {loading ? "Menghubungkan ke DOKU…" : `Lanjutkan ke DOKU ${environment}`}
+                    {!loading && <span aria-hidden="true">↗</span>}
+                  </button>
+                  <p>
+                    Slot akan ditahan selama 15 menit. Jika pembayaran tidak
+                    selesai, hold dilepas otomatis.
+                  </p>
+                </div>
+              </form>
             </section>
 
             <aside className={styles.summary} aria-labelledby="summary-title">

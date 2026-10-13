@@ -255,6 +255,12 @@
   line-height: 1.7;
 }
 
+.action .error {
+  color: #a54c38;
+  font-size: 11px;
+  margin: 0 0 12px;
+}
+
 .summaryTop {
   background: #203f35;
   color: #fffbed;

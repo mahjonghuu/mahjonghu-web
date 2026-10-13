@@ -316,6 +316,7 @@ export default function BookingSchedule({
             onClick={() => {
               const params = new URLSearchParams({
                 outlet: outlet.name,
+                outletId: outlet.id,
                 date,
                 total: String(total),
                 tables: String(tableCount),
@@ -323,8 +324,13 @@ export default function BookingSchedule({
                 sessions: JSON.stringify(
                   sessions.map((session) => ({
                     table: nameOfTable(session.table),
+                    tableId: outlet.tableIds[session.table - 1],
                     start: hourLabel(session.start),
                     end: hourLabel(session.end),
+                    startsAt: new Date(
+                      `${date}T${String(session.start).padStart(2, "0")}:00:00`,
+                    ).toISOString(),
+                    durationHours: session.end - session.start,
                     hours: session.end - session.start,
                     amount:
                       (session.end - session.start) *
