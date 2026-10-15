@@ -35,8 +35,8 @@ npm run build
 
 1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, bookings, outlets, tables, and revenue reports.
 2. Manage outlets with names, cities, addresses, and operational status through the PostgreSQL-backed outlet API.
-3. Display persisted booking records in the owner dashboard; dashboard overview calculations and aggregates come from backend APIs. Table management and revenue reports remain demo data.
-4. Derive availability and reports from persisted operational/payment records as those integrations are completed.
+3. Display persisted booking records in the owner dashboard; dashboard overview and revenue report aggregates come from backend APIs. Table management remains demo data.
+4. Persisted dashboard and revenue-report views are implemented; table-management data remains client-side demo data.
 5. Verify API flows while preserving clear demo-only boundaries for unconnected modules.
 
 Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/table`, and `/dashboard/revenue`. The overview requests backend-computed metrics from `GET /dashboard/summary`; outlet management and booking records also load from backend APIs.
@@ -51,18 +51,18 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 
 ## Demo data and state
 
-- `app/dashboard/model.ts` retains display types and sample data used by the still-demo table and revenue routes.
+- `app/dashboard/model.ts` retains display types and sample data used by the still-demo table-management route.
 - `app/dashboard/layout.tsx` provides shared navigation and dashboard filter state.
-- `app/dashboard/booking/page.tsx` reads persisted booking records from `GET /bookings`; the overview renders aggregates from `GET /dashboard/summary`. Table management and revenue reports remain demo-only.
+- `app/dashboard/booking/page.tsx` reads persisted booking records from `GET /bookings`; the overview and revenue report render backend aggregates from `GET /dashboard/summary` and `GET /dashboard/revenue`. Table management remains demo-only.
 - Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`; an unset or blank value falls back to `http://localhost:3001`. Restart Next.js after changing this build-time variable. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
 - Outlet list, create, edit, and archive requests use `GET`, `POST`, `PATCH`, and `DELETE /outlets`; booking records load through the dashboard-only `GET /bookings` endpoint.
-- The table-management and revenue-report screens remain demo-only; the dashboard overview's occupancy, payment totals, and per-outlet revenue are calculated by the backend.
+- Table management remains demo-only; dashboard occupancy and payment totals, per-outlet revenue, transaction details, and report CSV source rows come from the backend.
 - `public/logo.webp` is the supplied original. `public/logo-transparent.webp` removes its black background while preserving the artwork with alpha transparency; the dashboard and browser icon use this variant. Keep the original file unchanged.
-- The demo transaction seed spans October 3–10, 2026; the initial report range is October 1–10, 2026. These demo totals are not PostgreSQL financial records.
+- The demo transaction seed remains in `app/dashboard/model.ts` for the table-management demo; the revenue report queries persisted payments.
 - The outlet form validates required fields; the backend rejects duplicate active names. Outlet archival is blocked while tables or booking history reference the outlet.
-- Table status changes do not create payments. Table management, revenue summaries, and CSV exports remain client-side demo data.
-- CSV exports include only the demo transactions matching the current local outlet and date filters.
+- Table status changes do not create payments. Table management remains demo-only; the revenue summary and CSV source records come from successful backend payments.
+- Revenue CSV exports include only backend payments matching the selected outlet and settlement date range.
 
 ## Security and scope
 
-Dashboard login is handled by backend `POST /auth/login`, which sets an eight-hour `HttpOnly`, `SameSite=Strict` JWT cookie; the token is not exposed to client JavaScript. `proxy.ts` validates that session with backend `GET /auth/me` before serving any `/dashboard` route except `/dashboard/login`. Browser API requests include the cookie, and backend guards enforce owner authorization independently. Logout clears the cookie through `POST /auth/logout`. Keep the web app and API same-site and configure credentialed CORS using `WEB_ORIGIN`; owner provisioning and `JWT_SECRET` setup are documented in `../mahjonghu-backend/README.md`. There is no public registration or role-promotion flow. Table management and reports remain demo data; the public booking page remains a frontend-only preview.
+Dashboard login is handled by backend `POST /auth/login`, which sets an eight-hour `HttpOnly`, `SameSite=Strict` JWT cookie; the token is not exposed to client JavaScript. `proxy.ts` validates that session with backend `GET /auth/me` before serving any `/dashboard` route except `/dashboard/login`. Browser API requests include the cookie, and backend guards enforce owner authorization independently. Logout clears the cookie through `POST /auth/logout`. Keep the web app and API same-site and configure credentialed CORS using `WEB_ORIGIN`; owner provisioning and `JWT_SECRET` setup are documented in `../mahjonghu-backend/README.md`. There is no public registration or role-promotion flow. Table management remains demo data; the public booking page remains a frontend-only preview.
