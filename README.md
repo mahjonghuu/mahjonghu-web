@@ -35,11 +35,11 @@ npm run build
 
 1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, bookings, outlets, tables, and revenue reports.
 2. Manage outlets with names, cities, addresses, and operational status through the PostgreSQL-backed outlet API.
-3. Display persisted booking records in the owner dashboard; table management, dashboard metrics, and revenue reports remain demo data until their backend modules are connected.
+3. Display persisted booking records in the owner dashboard; dashboard overview calculations and aggregates come from backend APIs. Table management and revenue reports remain demo data.
 4. Derive availability and reports from persisted operational/payment records as those integrations are completed.
 5. Verify API flows while preserving clear demo-only boundaries for unconnected modules.
 
-Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/table`, and `/dashboard/revenue`. The shared route layout owns the sidebar, top bar, and in-memory demo state; outlet management and booking records load from backend APIs.
+Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/table`, and `/dashboard/revenue`. The overview requests backend-computed metrics from `GET /dashboard/summary`; outlet management and booking records also load from backend APIs.
 
 ### Responsive workspace
 
@@ -51,12 +51,12 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 
 ## Demo data and state
 
-- `app/dashboard/model.ts` defines outlet, table, and paid-transaction shapes plus the sample data for still-demo modules.
-- `app/dashboard/layout.tsx` provides shared navigation and in-memory state across the dashboard routes.
-- `app/dashboard/booking/page.tsx` reads persisted booking records from `GET /bookings`; `app/dashboard/table/page.tsx` and `app/dashboard/revenue/page.tsx` remain demo-only.
+- `app/dashboard/model.ts` retains display types and sample data used by the still-demo table and revenue routes.
+- `app/dashboard/layout.tsx` provides shared navigation and dashboard filter state.
+- `app/dashboard/booking/page.tsx` reads persisted booking records from `GET /bookings`; the overview renders aggregates from `GET /dashboard/summary`. Table management and revenue reports remain demo-only.
 - Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`; an unset or blank value falls back to `http://localhost:3001`. Restart Next.js after changing this build-time variable. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
 - Outlet list, create, edit, and archive requests use `GET`, `POST`, `PATCH`, and `DELETE /outlets`; booking records load through the dashboard-only `GET /bookings` endpoint.
-- The table-management and revenue-report screens remain demo-only: their 12 sample tables and 24 sample transactions do not come from the backend.
+- The table-management and revenue-report screens remain demo-only; the dashboard overview's occupancy, payment totals, and per-outlet revenue are calculated by the backend.
 - `public/logo.webp` is the supplied original. `public/logo-transparent.webp` removes its black background while preserving the artwork with alpha transparency; the dashboard and browser icon use this variant. Keep the original file unchanged.
 - The demo transaction seed spans October 3–10, 2026; the initial report range is October 1–10, 2026. These demo totals are not PostgreSQL financial records.
 - The outlet form validates required fields; the backend rejects duplicate active names. Outlet archival is blocked while tables or booking history reference the outlet.

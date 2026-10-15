@@ -3,14 +3,40 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
 } from "react";
-import { initialData, type WorkspaceData } from "./model";
+import { outletApi } from "@/lib/outlet";
+import { tableApi } from "@/lib/table";
+import { bookingApi } from "@/lib/booking";
+import type { BookingRecord } from "@/lib/booking";
+import type { OutletApiRecord } from "@/lib/outlet";
+import type { WorkspaceData } from "./model";
 
-/** Named shape of the in-memory demo state used by dashboard features. */
+const toOutlet = (outlet: OutletApiRecord) => ({
+  id: String(outlet.id),
+  name: outlet.name,
+  city: outlet.city,
+  address: outlet.address,
+  active: Boolean(outlet.active ?? outlet.isActive),
+  openingHour: Number(outlet.openingHour),
+  closingHour: Number(outlet.closingHour),
+});
+
+const bookingTransaction = (booking: BookingRecord) => ({
+  id: booking.id,
+  outletId: booking.outletId,
+  tableId: booking.tableId,
+  date: booking.startsAt.slice(0, 10),
+  customer: booking.customerName,
+  hours: booking.durationHours,
+  amount: Number(booking.totalAmountIdr),
+});
+
+/** Workspace data loaded from the authenticated backend APIs. */
 export type DemoWorkspaceData = WorkspaceData;
 type WorkspaceState = {
   data: DemoWorkspaceData;
@@ -25,12 +51,37 @@ type WorkspaceState = {
 
 const WorkspaceContext = createContext<WorkspaceState | null>(null);
 
-/** Keeps demo state alive while navigating between dashboard route segments. */
+/** Loads shared dashboard data from the backend for all dashboard routes. */
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<DemoWorkspaceData>({
+    outlets: [],
+    tables: [],
+    transactions: [],
+  });
   const [outletFilter, setOutletFilter] = useState("all");
-  const [from, setFrom] = useState("2026-10-01");
-  const [to, setTo] = useState("2026-10-10");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([outletApi.list(), tableApi.list(), bookingApi.list()])
+      .then(([outlets, tables, bookings]) => {
+        if (!active) return;
+        setData({
+          outlets: outlets.map(toOutlet),
+          tables,
+          transactions: bookings
+            .filter((booking) => booking.status === "completed")
+            .map(bookingTransaction),
+        });
+      })
+      .catch((error: unknown) => {
+        console.error("Dashboard data could not be loaded.", error);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <WorkspaceContext.Provider
@@ -50,7 +101,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** Returns shared demo workspace state or throws outside its provider. */
+/** Returns shared dashboard state or throws outside its provider. */
 export function useWorkspace(): WorkspaceState {
   const state = useContext(WorkspaceContext);
   if (!state)

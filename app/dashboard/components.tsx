@@ -67,13 +67,13 @@ export function PageHeading({
   );
 }
 
-/** Outlet filter for demo-data dashboard pages. */
+/** Outlet filter for dashboard data. */
 export function OutletSelect({
   outlets,
   value,
   onChange,
 }: {
-  outlets: Outlet[];
+  outlets: Pick<Outlet, "id" | "name">[];
   value: string;
   onChange: (value: string) => void;
 }) {

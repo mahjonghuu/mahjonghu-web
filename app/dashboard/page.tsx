@@ -1,44 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import {
-  DateRange,
-  Icon,
-  OutletSelect,
-  PageHeading,
-  TransactionTable,
-} from "./components";
+import { useEffect, useState } from "react";
+import { DateRange, Icon, OutletSelect, PageHeading } from "./components";
 import { rupiah } from "./model";
+import { getDashboardSummary, type DashboardSummary } from "@/lib/dashboard";
 import { useWorkspace } from "./workspace-state";
 
-/** Dashboard overview route for demo revenue and table operations. */
+const tableStatuses = ["Tersedia", "Digunakan", "Perawatan"] as const;
+
+/** Displays backend-calculated operational and payment aggregates. */
 export default function DashboardPage() {
-  const { data, outletFilter, setOutletFilter, from, setFrom, to, setTo } =
+  const { outletFilter, setOutletFilter, from, setFrom, to, setTo } =
     useWorkspace();
-  const scopedTables = data.tables.filter(
-    (table) => outletFilter === "all" || table.outletId === outletFilter,
-  );
-  const scopedTransactions = data.transactions.filter(
-    (transaction) =>
-      (outletFilter === "all" || transaction.outletId === outletFilter) &&
-      transaction.date >= from &&
-      transaction.date <= to,
-  );
-  const total = scopedTransactions.reduce(
-    (sum, transaction) => sum + transaction.amount,
-    0,
-  );
-  const occupied = scopedTables.filter(
-    (table) => table.status === "Digunakan",
-  ).length;
-  const revenueRows = data.outlets
-    .filter((outlet) => outletFilter === "all" || outlet.id === outletFilter)
-    .map((outlet) => ({
-      ...outlet,
-      amount: scopedTransactions
-        .filter((transaction) => transaction.outletId === outlet.id)
-        .reduce((sum, transaction) => sum + transaction.amount, 0),
-    }));
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [settledKey, setSettledKey] = useState("");
+  const [error, setError] = useState("");
+  const requestKey = JSON.stringify([from, to, outletFilter]);
+
+  const loading = settledKey !== requestKey;
+  useEffect(() => {
+    let active = true;
+    getDashboardSummary({ from, to, outletId: outletFilter })
+      .then((result) => {
+        if (active) setError("");
+        if (active) setSummary(result);
+      })
+      .catch((requestError: unknown) => {
+        if (active)
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Ringkasan tidak dapat dimuat.",
+          );
+      })
+      .finally(() => {
+        if (active) setSettledKey(requestKey);
+      });
+    return () => {
+      active = false;
+    };
+  }, [from, to, outletFilter, requestKey]);
+
+  const metrics = summary?.metrics;
+  const tableCount = (status: string) =>
+    metrics?.tablesByStatus.find((row) => row.status === status)?.count ?? 0;
 
   return (
     <>
@@ -47,37 +53,50 @@ export default function DashboardPage() {
         description="Pantau performa bisnis, dari satu tempat."
         action={
           <div className="date-note">
-            <span className="calendar-icon">▦</span>
-            <span>
-              DATA DEMO<small>Oktober 2026</small>
-            </span>
+            <span className="calendar-icon">▦</span> DATA LIVE
+            <small>Data operasional</small>
           </div>
         }
       />
       <div className="filterbar">
         <OutletSelect
-          outlets={data.outlets}
+          outlets={summary?.outlets ?? []}
           value={outletFilter}
           onChange={setOutletFilter}
         />
         <DateRange from={from} to={to} setFrom={setFrom} setTo={setTo} />
       </div>
-      {from > to && (
+      {from && to && from > to && (
         <p className="notice error" role="alert">
           Tanggal mulai tidak boleh melewati tanggal akhir.
         </p>
       )}
-      <p className="field-help">
-        Dashboard, meja, dan laporan masih menggunakan data demo.
-      </p>
+      {!loading && error && (
+        <p className="notice error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading ? (
+        <div className="dashboard-skeleton" role="status" aria-label="Memuat dashboard" aria-busy="true">
+          <div className="dashboard-skeleton-stats">
+            {[0, 1, 2, 3].map((item) => <div className="dashboard-skeleton-card" key={item}><i /><b /><span /></div>)}
+          </div>
+          <div className="dashboard-skeleton-bento">
+            <div className="dashboard-skeleton-panel dashboard-skeleton-revenue"><i /><span /><span /><span /><span /></div>
+            <div className="dashboard-skeleton-panel dashboard-skeleton-availability"><i /><b /><span /><span /><span /></div>
+          </div>
+          <div className="dashboard-skeleton-panel dashboard-skeleton-transactions"><i /><span /><span /><span /></div>
+        </div>
+      ) : (
+        <>
       <div className="stats-grid">
         <article className="stat-card highlight">
           <div className="stat-label">
             Total pendapatan <Icon index={3} />
           </div>
-          <h2>{rupiah(total)}</h2>
+          <h2>{rupiah(Number(metrics?.revenueIdr ?? 0))}</h2>
           <p>
-            <span className="stat-dot" /> Transaksi lunas dalam periode
+            <span className="stat-dot" /> Pembayaran berhasil dalam periode
           </p>
         </article>
         <article className="stat-card">
@@ -85,21 +104,18 @@ export default function DashboardPage() {
             Transaksi lunas <Icon index={3} />
           </div>
           <h2>
-            {scopedTransactions.length}
+            {metrics?.paidTransactionCount ?? 0}
             <span>transaksi</span>
           </h2>
-          <p>
-            {scopedTransactions.reduce((sum, t) => sum + t.hours, 0)} jam
-            bermain tercatat
-          </p>
+          <p>{metrics?.playedHours ?? 0} jam bermain tercatat</p>
         </article>
         <article className="stat-card">
           <div className="stat-label">
             Meja digunakan <Icon index={2} />
           </div>
           <h2>
-            {occupied}
-            <span>/ {scopedTables.length} meja</span>
+            {metrics?.occupiedTableCount ?? 0}
+            <span>/ {metrics?.tableCount ?? 0} meja</span>
           </h2>
           <p>Status operasional saat ini</p>
         </article>
@@ -108,13 +124,7 @@ export default function DashboardPage() {
             Outlet aktif <Icon index={1} />
           </div>
           <h2>
-            {
-              data.outlets.filter(
-                (outlet) =>
-                  outlet.active &&
-                  (outletFilter === "all" || outlet.id === outletFilter),
-              ).length
-            }
+            {metrics?.activeOutletCount ?? 0}
             <span>outlet</span>
           </h2>
           <p>Siap melayani pelanggan</p>
@@ -130,49 +140,40 @@ export default function DashboardPage() {
             <span className="subtle-label">IDR</span>
           </div>
           <div className="revenue-bars">
-            {revenueRows.map((outlet, index) => (
+            {summary?.revenueByOutlet.map((outlet, index) => (
               <div className="revenue-row" key={outlet.id}>
                 <div>
                   <span>
-                    <span className="outlet-number">0{index + 1}</span>
+                    <span className="outlet-number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
                     {outlet.name.replace("MahjongHu ", "")}
                   </span>
-                  <strong>{rupiah(outlet.amount)}</strong>
+                  <strong>{rupiah(Number(outlet.amountIdr))}</strong>
                 </div>
                 <div className="bar-track">
-                  <div
-                    style={{
-                      width: `${total ? (outlet.amount / Math.max(...revenueRows.map((row) => row.amount), 1)) * 100 : 0}%`,
-                    }}
-                  />
+                  <div style={{ width: `${outlet.barPercent}%` }} />
                 </div>
               </div>
             ))}
-            {!revenueRows.length && <p className="empty">Belum ada outlet.</p>}
+            {!loading && !summary?.revenueByOutlet.length && (
+              <p className="empty">Belum ada outlet.</p>
+            )}
           </div>
           <div className="panel-foot">
-            Pendapatan dihitung dari transaksi lunas, bukan status meja.
+            Pendapatan dijumlahkan dari pembayaran berhasil di backend.
           </div>
         </section>
         <section className="panel availability">
           <div className="panel-title">
             <div>
               <h2>Kesiapan meja</h2>
-              <p>Status langsung dari workspace</p>
+              <p>Status operasional terkini dari backend</p>
             </div>
             <Icon index={2} />
           </div>
           <div className="availability-total">
-            <strong>
-              {
-                scopedTables.filter(
-                  (table) =>
-                    table.status === "Tersedia" &&
-                    data.outlets.find((outlet) => outlet.id === table.outletId)
-                      ?.active,
-                ).length
-              }
-            </strong>
+            <strong>{metrics?.availableTableCount ?? 0}</strong>
             <span>
               meja siap
               <br />
@@ -180,30 +181,22 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="segmented-bar">
-            {["Tersedia", "Digunakan", "Perawatan"].map((status, index) => (
+            {tableStatuses.map((status, index) => (
               <div
                 key={status}
                 className={`segment segment-${index}`}
-                style={{
-                  flex: scopedTables.filter((table) => table.status === status)
-                    .length,
-                }}
+                style={{ flex: tableCount(status) }}
               />
             ))}
           </div>
           <div className="status-list">
-            {["Tersedia", "Digunakan", "Perawatan"].map((status, index) => (
+            {tableStatuses.map((status, index) => (
               <div key={status}>
                 <span>
                   <i className={`legend-dot segment-${index}`} />
                   {status}
                 </span>
-                <strong>
-                  {
-                    scopedTables.filter((table) => table.status === status)
-                      .length
-                  }
-                </strong>
+                <strong>{tableCount(status)}</strong>
               </div>
             ))}
           </div>
@@ -216,19 +209,69 @@ export default function DashboardPage() {
         <div className="panel-title">
           <div>
             <h2>Transaksi terbaru</h2>
-            <p>Aktivitas pembayaran terakhir di outlet Anda</p>
+            <p>Pembayaran berhasil terakhir di outlet Anda</p>
           </div>
           <Link className="secondary" href="/dashboard/revenue">
             Lihat laporan ↗
           </Link>
         </div>
-        <TransactionTable
-          transactions={scopedTransactions}
-          tables={data.tables}
-          outlets={data.outlets}
-          limit={5}
-        />
+        <div className="table-scroll">
+          <table role="table" aria-label="Transaksi">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col">Transaksi / pelanggan</th>
+                <th scope="col">Outlet</th>
+                <th scope="col">Tanggal</th>
+                <th scope="col">Durasi</th>
+                <th scope="col">Pendapatan</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody role="rowgroup">
+              {summary?.transactions.map((transaction) => (
+                <tr key={transaction.id} role="row">
+                  <td role="cell" data-label="Transaksi / pelanggan">
+                    <strong>{transaction.customer}</strong>
+                    <small>
+                      {transaction.id} · {transaction.tableName}
+                    </small>
+                  </td>
+                  <td role="cell" data-label="Outlet">
+                    {transaction.outletName.replace("MahjongHu ", "")}
+                  </td>
+                  <td role="cell" data-label="Tanggal">
+                    {new Intl.DateTimeFormat("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      timeZone: "Asia/Jakarta",
+                    }).format(new Date(transaction.settledAt))}
+                  </td>
+                  <td role="cell" data-label="Durasi">
+                    {transaction.hours} jam
+                  </td>
+                  <td role="cell" data-label="Pendapatan" className="money">
+                    {rupiah(Number(transaction.amountIdr))}
+                  </td>
+                  <td role="cell" data-label="Status">
+                    <span className="badge green">
+                      <span />
+                      Lunas
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!loading && !summary?.transactions.length && (
+            <div className="empty">
+              Tidak ada pembayaran berhasil pada periode ini.
+            </div>
+          )}
+        </div>
       </section>
+        </>
+      )}
     </>
   );
 }

@@ -1307,3 +1307,113 @@ tr:last-child td {
     width: 100%;
   }
 }
+.dashboard-skeleton {
+  display: grid;
+  gap: 18px;
+}
+.dashboard-skeleton-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 17px;
+}
+.dashboard-skeleton-card,
+.dashboard-skeleton-panel {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+}
+.dashboard-skeleton-card {
+  display: grid;
+  gap: 18px;
+  min-height: 142px;
+  padding: 21px 20px;
+}
+.dashboard-skeleton-card:first-child {
+  background: #f1f4ef;
+}
+.dashboard-skeleton i,
+.dashboard-skeleton b,
+.dashboard-skeleton span {
+  display: block;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #edf0e9 25%, #f7f8f5 50%, #edf0e9 75%);
+  background-size: 200% 100%;
+  animation: dashboard-shimmer 1.5s ease-in-out infinite;
+}
+.dashboard-skeleton-card i {
+  width: 44%;
+  height: 11px;
+}
+.dashboard-skeleton-card b {
+  width: 62%;
+  height: 28px;
+}
+.dashboard-skeleton-card span {
+  width: 76%;
+  height: 9px;
+}
+.dashboard-skeleton-bento {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 22px;
+}
+.dashboard-skeleton-panel {
+  display: grid;
+  align-content: start;
+  gap: 17px;
+  min-height: 270px;
+  padding: 23px;
+}
+.dashboard-skeleton-panel > i {
+  width: 40%;
+  height: 14px;
+  margin-bottom: 4px;
+}
+.dashboard-skeleton-revenue > span {
+  width: 100%;
+  height: 24px;
+}
+.dashboard-skeleton-revenue > span:nth-of-type(even) {
+  width: 78%;
+}
+.dashboard-skeleton-availability > b {
+  width: 35%;
+  height: 48px;
+}
+.dashboard-skeleton-availability > span {
+  width: 100%;
+  height: 16px;
+}
+.dashboard-skeleton-transactions {
+  min-height: 225px;
+}
+.dashboard-skeleton-transactions > span {
+  width: 100%;
+  height: 22px;
+}
+@keyframes dashboard-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (max-width: 950px) {
+  .dashboard-skeleton-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-skeleton-bento {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 400px) {
+  .dashboard-skeleton-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-skeleton i,
+  .dashboard-skeleton b,
+  .dashboard-skeleton span {
+    animation: none;
+  }
+}
