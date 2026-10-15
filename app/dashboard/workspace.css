@@ -158,77 +158,6 @@
   border-radius: 5px;
   font-size: 10px;
 }
-.sidebar-bottom {
-  margin-top: auto;
-  padding-top: 60px;
-}
-.demo-card {
-  border: 1px solid #e5e9df;
-  border-radius: 9px;
-  background: #f7f8f2;
-  padding: 17px 14px;
-  color: #718066;
-  font-size: 9px;
-  letter-spacing: 1px;
-}
-.demo-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #6d936c;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-.demo-card h3 {
-  font-size: 12px;
-  color: #3c5140;
-  letter-spacing: 0;
-  margin: 13px 0 7px;
-}
-.demo-card p {
-  font-size: 11px;
-  letter-spacing: 0;
-  line-height: 1.8;
-  margin: 0;
-  color: #83907e;
-}
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 23px;
-  padding: 22px 0;
-  border-top: 1px solid var(--line);
-}
-.avatar {
-  width: 35px;
-  height: 35px;
-  background: #edece3;
-  color: #6c7157;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 650;
-  flex-shrink: 0;
-}
-.profile strong {
-  font-size: 11px;
-}
-.profile small {
-  display: block;
-  font-size: 9px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-.profile-dot {
-  margin-left: auto;
-  width: 7px;
-  height: 7px;
-  background: #739e73;
-  border-radius: 50%;
-}
 .main-shell {
   flex: 1;
   min-width: 0;
@@ -1026,8 +955,7 @@ tr:last-child td {
   .brand small {
     font-size: 7px;
   }
-  .workspace-label,
-  .sidebar-bottom {
+  .workspace-label {
     display: none;
   }
   .sidebar nav {

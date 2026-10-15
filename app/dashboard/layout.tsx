@@ -59,23 +59,6 @@ function DashboardShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="sidebar-bottom">
-          <div className="demo-card">
-            <span className="demo-dot" /> MODE DEMO
-            <h3>Ruang untuk eksplorasi.</h3>
-            <p>
-              Semua data hanya untuk demo. Perubahan akan direset saat refresh.
-            </p>
-          </div>
-          <div className="profile">
-            <span className="avatar">AD</span>
-            <div>
-              <strong>Admin Demo</strong>
-              <small>Workspace administrator</small>
-            </div>
-            <span className="profile-dot" />
-          </div>
-        </div>
       </aside>
       <div className="main-shell">
         <header className="topbar">
@@ -108,9 +91,6 @@ function DashboardShell({ children }: { children: ReactNode }) {
             <span>
               © 2026 MahjongHu. A little strategy, a lot of possibilities.
             </span>
-            <span>
-              <span className="demo-dot" /> Demo workspace · data nonpersisten
-            </span>
           </footer>
         </main>
       </div>
@@ -118,7 +98,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Provides dashboard navigation and in-memory demo state across route changes. */
+/** Provides dashboard navigation and shared workspace state across routes. */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   return (
