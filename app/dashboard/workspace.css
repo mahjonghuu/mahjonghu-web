@@ -747,6 +747,49 @@ tr:last-child td {
   color: #b07768;
   padding: 6px;
 }
+.access-manager {
+  padding: 0;
+}
+.access-manager form {
+  display: grid;
+  gap: 10px;
+}
+.access-manager label {
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+}
+.access-manager input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dce4d5;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+.access-manager ul {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  max-height: min(40dvh, 360px);
+  overflow-y: auto;
+}
+.access-manager li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.access-manager .field-help,
+.access-manager .form-error {
+  min-height: 0;
+  margin: 0 0 12px;
+}
+
 .row-actions {
   position: relative;
   display: flex;
@@ -805,6 +848,20 @@ tr:last-child td {
 }
 .editor-dialog form {
   padding: 27px;
+}
+.access-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(90dvh, 800px);
+  overflow-y: auto;
+}
+.access-dialog-inner {
+  padding: 27px;
+}
+.access-dialog .access-manager form {
+  padding: 0;
+}
+.access-dialog .access-manager label {
+  margin-bottom: 0;
 }
 .dialog-heading {
   display: flex;
@@ -1205,6 +1262,9 @@ tr:last-child td {
   }
   .editor-dialog {
     max-height: calc(100dvh - 32px);
+  }
+  .access-dialog-inner {
+    padding: 20px;
   }
   .editor-dialog form {
     padding: 20px;

@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import styles from "./page.module.css";
 import BookingSchedule from "./booking-schedule";
 import { formatRupiah as money } from "../lib/currency";
-import { apiRequest } from "../lib/api";
+import { apiRequest, ApiError } from "../lib/api";
+import { customerAuthApi, type Customer } from "../lib/customer-auth";
 
 type OutletRecord = {
   id: string;
@@ -41,9 +42,120 @@ function BookingPage() {
   const [outletId, setOutletId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+  const [discoveryVersion, setDiscoveryVersion] = useState(0);
 
   useEffect(() => {
     let current = true;
+    customerAuthApi
+      .me()
+      .then(({ user }) => {
+        if (current) setCustomer(user);
+      })
+      .catch(async (cause: unknown) => {
+        if (cause instanceof ApiError && cause.status === 401) {
+          try {
+            await customerAuthApi.logout();
+          } catch (logoutError) {
+            if (current)
+              setAuthError(
+                logoutError instanceof Error
+                  ? logoutError.message
+                  : "Gagal menghapus sesi anggota.",
+              );
+          }
+        } else if (current) {
+          setAuthError(
+            cause instanceof Error
+              ? cause.message
+              : "Gagal memeriksa sesi anggota.",
+          );
+        }
+      })
+      .finally(() => {
+        if (current) setAuthReady(true);
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+
+  async function requestCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthError("");
+    setAuthMessage("");
+    try {
+      await customerAuthApi.requestCode(email.trim());
+      setCodeRequested(true);
+      setAuthMessage("Kode masuk dikirim ke email kamu.");
+    } catch (cause) {
+      setAuthError(
+        cause instanceof Error ? cause.message : "Gagal mengirim kode.",
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthError("");
+    setAuthMessage("");
+    try {
+      await customerAuthApi.verifyCode(email.trim(), code.trim());
+      const session = await customerAuthApi.me();
+      if (!session.user) throw new Error("Sesi anggota tidak tersedia.");
+      setCustomer(session.user);
+      setCodeRequested(false);
+      setCode("");
+      setAuthMessage("Berhasil masuk. Memuat outlet untuk anggota…");
+      setOutlets([]);
+      setOutletId("");
+      setLoading(true);
+      setError("");
+      setDiscoveryVersion((version) => version + 1);
+    } catch (cause) {
+      setAuthError(
+        cause instanceof Error ? cause.message : "Kode tidak valid.",
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function logout() {
+    setAuthBusy(true);
+    setAuthError("");
+    setAuthMessage("");
+    try {
+      await customerAuthApi.logout();
+      setCustomer(null);
+      setCodeRequested(false);
+      setCode("");
+      setOutlets([]);
+      setOutletId("");
+      setLoading(true);
+      setError("");
+      setDiscoveryVersion((version) => version + 1);
+    } catch (cause) {
+      setAuthError(cause instanceof Error ? cause.message : "Gagal keluar.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    let current = true;
+    if (!authReady) return;
     Promise.all([
       apiRequest<OutletRecord[]>("/outlets/public"),
       apiRequest<TableRecord[]>("/tables/public"),
@@ -88,12 +200,15 @@ function BookingPage() {
           setError("Data outlet belum dapat dimuat. Coba lagi nanti.");
       })
       .finally(() => {
-        if (current) setLoading(false);
+        if (current) {
+          setLoading(false);
+          setAuthMessage("");
+        }
       });
     return () => {
       current = false;
     };
-  }, []);
+  }, [authReady, discoveryVersion]);
 
   const outlet = outlets.find((item) => item.id === outletId);
   const visibleOutlets = outlets.filter(
@@ -130,6 +245,89 @@ function BookingPage() {
           Let’s play <Arrow diagonal />
         </a>
       </header>
+      <section className={styles.memberAccess} aria-label="Akses anggota">
+        {customer ? (
+          <div className={styles.memberRow}>
+            <p>
+              Masuk sebagai <strong>{customer.email}</strong>. Outlet khusus
+              anggota tersedia untukmu bila pemilik telah memberikan akses.
+            </p>
+            <button
+              type="button"
+              disabled={authBusy}
+              onClick={() => void logout()}
+            >
+              Keluar
+            </button>
+          </div>
+        ) : (
+          <div className={styles.memberRow}>
+            <div>
+              <strong>Punya akses anggota?</strong>
+              <p>
+                Masuk dengan kode email untuk melihat outlet privat. Outlet
+                publik tetap bisa dipesan tanpa login; temanmu tidak perlu
+                menjadi anggota.
+              </p>
+            </div>
+            <form
+              onSubmit={codeRequested ? verifyCode : requestCode}
+              className={styles.memberForm}
+            >
+              <label>
+                Email{" "}
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    setCodeRequested(false);
+                    setCode("");
+                  }}
+                  placeholder="email@contoh.com"
+                />
+              </label>
+              {codeRequested && (
+                <label>
+                  Kode email{" "}
+                  <input
+                    required
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    placeholder="Kode masuk"
+                  />
+                </label>
+              )}
+              <button type="submit" disabled={authBusy}>
+                {authBusy ? "Tunggu…" : codeRequested ? "Masuk" : "Kirim kode"}
+              </button>
+              {codeRequested && (
+                <button
+                  type="button"
+                  disabled={authBusy}
+                  onClick={() => {
+                    setCodeRequested(false);
+                    setCode("");
+                    setAuthError("");
+                  }}
+                >
+                  Kirim ulang kode
+                </button>
+              )}
+            </form>
+          </div>
+        )}
+        {authError && (
+          <p role="alert" className={styles.memberError}>
+            {authError}
+          </p>
+        )}
+        {authMessage && <p role="status">{authMessage}</p>}
+      </section>
 
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={styles.heroCopy}>
@@ -229,7 +427,7 @@ function BookingPage() {
 
       {outlet && (
         <BookingSchedule
-          key={outlet.id}
+          key={`${outlet.id}:${discoveryVersion}`}
           outlet={{
             id: outlet.id,
             name: outlet.name,

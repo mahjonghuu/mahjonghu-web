@@ -22,6 +22,7 @@ const toOutlet = (outlet: OutletApiRecord) => ({
   city: outlet.city,
   address: outlet.address,
   active: Boolean(outlet.active ?? outlet.isActive),
+  visibility: outlet.visibility,
   openingHour: Number(outlet.openingHour),
   closingHour: Number(outlet.closingHour),
 });

@@ -8,6 +8,7 @@ export type OutletApiRecord = {
   address: string;
   active?: boolean;
   isActive?: boolean;
+  visibility: "public" | "private";
   tableCount?: number;
   openingHour: number;
   closingHour: number;
@@ -20,10 +21,18 @@ export type OutletInput = {
   city: string;
   address: string;
   active: boolean;
+  visibility: "public" | "private";
   openingHour: number;
   closingHour: number;
 };
 
+/** Member grant returned by the owner-only outlet access endpoints. */
+export type OutletAccessRecord = {
+  userId: string;
+  email: string;
+  expiresAt: string | null;
+  createdAt: string;
+};
 
 /** Outlet API operations used by the dashboard workspace. */
 export const outletApi = {
@@ -50,6 +59,37 @@ export const outletApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
+  },
+
+  /** Lists member grants for an outlet. */
+  access(id: string): Promise<OutletAccessRecord[]> {
+    return apiRequest<OutletAccessRecord[]>(
+      `/outlets/${encodeURIComponent(id)}/access`,
+    );
+  },
+
+  /** Creates or renews a member grant by email. */
+  grantAccess(
+    id: string,
+    email: string,
+    expiresAt?: string,
+  ): Promise<OutletAccessRecord> {
+    return apiRequest<OutletAccessRecord>(
+      `/outlets/${encodeURIComponent(id)}/access`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, ...(expiresAt ? { expiresAt } : {}) }),
+      },
+    );
+  },
+
+  /** Revokes a member grant. */
+  async revokeAccess(id: string, userId: string): Promise<void> {
+    await apiRequest<unknown>(
+      `/outlets/${encodeURIComponent(id)}/access/${encodeURIComponent(userId)}`,
+      { method: "DELETE" },
+    );
   },
 
   /** Archives an outlet; archived records are excluded from list results. */

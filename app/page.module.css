@@ -88,6 +88,65 @@
   margin-left: 28px;
   font-size: 18px;
 }
+.memberAccess {
+  max-width: 1200px;
+  margin: 20px auto 0;
+  padding: 18px 22px;
+  border: 1px solid #dcded2;
+  border-radius: 8px;
+  background: #fffefa;
+  font-size: 12px;
+}
+.memberRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.memberRow p {
+  margin: 5px 0;
+  line-height: 1.6;
+}
+.memberForm {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.memberForm label {
+  display: grid;
+  gap: 5px;
+}
+.memberForm input {
+  min-width: 180px;
+  padding: 9px;
+  border: 1px solid #bbc3b6;
+  border-radius: 5px;
+}
+.memberAccess button {
+  padding: 10px 15px;
+  border: 1px solid #bbc3b6;
+  border-radius: 5px;
+  background: #f8f7f2;
+  color: var(--ink);
+}
+.memberAccess button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.memberError {
+  color: #ae3030;
+}
+@media (max-width: 800px) {
+  .memberAccess {
+    margin: 16px 22px 0;
+  }
+  .memberRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .hero {
   max-width: 1320px;
   margin: auto;

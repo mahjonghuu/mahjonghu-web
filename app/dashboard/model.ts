@@ -7,6 +7,7 @@ export type Outlet = {
   openingHour: number;
   closingHour: number;
   active: boolean;
+  visibility: "public" | "private";
   tableCount?: number;
   occupiedTableCount?: number;
 };
@@ -50,6 +51,7 @@ export function initialData(): WorkspaceData {
       address: "Jl. Senopati No. 28, Kebayoran Baru",
       active: true,
       openingHour: 12,
+      visibility: "public",
       closingHour: 22,
     },
     {
@@ -59,6 +61,7 @@ export function initialData(): WorkspaceData {
       address: "Jl. Boulevard Raya No. 16, Kelapa Gading",
       active: true,
       openingHour: 12,
+      visibility: "public",
       closingHour: 22,
     },
     {
@@ -68,6 +71,7 @@ export function initialData(): WorkspaceData {
       address: "Ruko The Icon, Blok B No. 12, BSD City",
       active: true,
       openingHour: 12,
+      visibility: "public",
       closingHour: 22,
     },
   ];

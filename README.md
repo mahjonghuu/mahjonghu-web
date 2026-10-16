@@ -11,6 +11,16 @@ npm run dev
 
 Open http://localhost:3000 for the public entry page. Dashboard routes under `/dashboard` require an owner account created by a trusted backend administrator; sign in at `/dashboard/login`.
 
+Private outlets appear on the public booking page only after a granted
+customer signs in using the emailed one-time code. The owner dashboard's
+outlet editor controls visibility; the separate "Kelola akses" dialog handles
+per-customer grants, optional expiry, and revocation. Long grant lists scroll
+inside the dialog instead of stretching outlet cards. Only the booking customer
+needs a grant; fellow players do not need accounts. Public outlets remain
+bookable without customer login.
+The backend requires `RESEND_API_KEY` and a verified `EMAIL_FROM` sender for
+member email delivery; see the backend README for configuration.
+
 The owner login screen uses a responsive split layout on desktop and a stacked layout on mobile. Its warm neutral background, white form card, and green actions retain the existing palette; the form still authenticates against `POST /auth/login`.
 
 ```bash

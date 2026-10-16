@@ -10,6 +10,7 @@ const toOutlet = (outlet: OutletApiRecord): Outlet => ({
   city: outlet.city,
   address: outlet.address,
   active: Boolean(outlet.active ?? outlet.isActive),
+  visibility: outlet.visibility,
   openingHour: Number(outlet.openingHour ?? 12),
   closingHour: Number(outlet.closingHour ?? 22),
   tableCount: Number(outlet.tableCount ?? 0),
@@ -74,8 +75,10 @@ export function useOutlets() {
     const openingHour = Number(fields.get("openingHour"));
     const closingHour = Number(fields.get("closingHour"));
     const active = fields.get("active") === "true";
+    const visibility = String(fields.get("visibility"));
     if (
       !name ||
+      (visibility !== "public" && visibility !== "private") ||
       !city ||
       !address ||
       !Number.isInteger(openingHour) ||
@@ -103,7 +106,7 @@ export function useOutlets() {
     setSaving(true);
     setError("");
     try {
-      const input = { name, city, address, active, openingHour, closingHour };
+      const input = { name, city, address, active, visibility: visibility as "public" | "private", openingHour, closingHour };
       if (editor) await outletApi.update(editor.id, input);
       else await outletApi.create(input);
       await refreshOutlets();

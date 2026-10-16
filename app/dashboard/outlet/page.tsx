@@ -1,7 +1,143 @@
 "use client";
 
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { outletApi, type OutletAccessRecord } from "@/lib/outlet";
 import { Badge, Icon, PageHeading } from "../components";
 import { useOutlets } from "@/hooks/use-outlets";
+
+/** Owner controls for listing, granting, and revoking member access. */
+function AccessManager({ outletId }: { outletId: string }) {
+  const [grants, setGrants] = useState<OutletAccessRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    outletApi
+      .access(outletId)
+      .then((records) => {
+        if (active) setGrants(records);
+      })
+      .catch((cause: unknown) => {
+        if (active)
+          setError(
+            cause instanceof Error ? cause.message : "Gagal memuat akses.",
+          );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [outletId]);
+
+  async function grant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const fields = new FormData(form);
+    const email = String(fields.get("email") ?? "").trim();
+    const expiry = String(fields.get("expiresAt") ?? "");
+    const expiryDate = expiry ? new Date(expiry) : null;
+    if (
+      expiryDate &&
+      (!Number.isFinite(expiryDate.getTime()) ||
+        expiryDate.getTime() <= Date.now())
+    ) {
+      setError("Masa berlaku harus di masa depan.");
+      return;
+    }
+    const expiresAt = expiryDate?.toISOString();
+    setSaving(true);
+    setError("");
+    try {
+      await outletApi.grantAccess(outletId, email, expiresAt);
+      setGrants(await outletApi.access(outletId));
+      form.reset();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Gagal memberikan akses.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function revoke(userId: string) {
+    setSaving(true);
+    setError("");
+    try {
+      await outletApi.revokeAccess(outletId, userId);
+      setGrants(await outletApi.access(outletId));
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Gagal mencabut akses.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="access-manager">
+      <p className="field-help">
+        Hanya pelanggan yang membuat booking perlu akses; teman yang ikut tidak
+        perlu login.
+      </p>
+      <form onSubmit={(event) => void grant(event)}>
+        <label>
+          Email anggota{" "}
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="anggota@email.com"
+          />
+        </label>
+        <label>
+          Berlaku sampai (opsional){" "}
+          <input name="expiresAt" type="datetime-local" />
+        </label>
+        <button className="secondary" type="submit" disabled={saving}>
+          {saving ? "Menyimpan…" : "Berikan akses"}
+        </button>
+      </form>
+      {error && (
+        <p role="alert" className="form-error">
+          {error}
+        </p>
+      )}
+      {loading ? (
+        <p role="status">Memuat daftar anggota…</p>
+      ) : error && !grants.length ? null : grants.length ? (
+        <ul>
+          {grants.map((entry) => (
+            <li key={entry.userId}>
+              <span>
+                {entry.email} ·{" "}
+                {entry.expiresAt
+                  ? `Sampai ${new Date(entry.expiresAt).toLocaleString("id-ID")}`
+                  : "Tanpa batas waktu"}
+              </span>
+              <button
+                className="delete-button"
+                type="button"
+                disabled={saving}
+                onClick={() => void revoke(entry.userId)}
+                aria-label={`Cabut akses ${entry.email}`}
+              >
+                Cabut
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>Belum ada anggota dengan akses.</p>
+      )}
+    </div>
+  );
+}
 
 /** Lists and manages outlets through the backend API. */
 export default function OutletPage() {
@@ -25,6 +161,8 @@ export default function OutletPage() {
     archive,
     setEditor,
   } = useOutlets();
+  const [accessOutletId, setAccessOutletId] = useState<string | null>(null);
+  const accessDialog = useRef<HTMLDialogElement>(null);
 
   return (
     <>
@@ -98,6 +236,13 @@ export default function OutletPage() {
                 <Badge tone={outlet.active ? "green" : "gray"}>
                   {outlet.active ? "Aktif" : "Nonaktif"}
                 </Badge>
+                <Badge
+                  tone={outlet.visibility === "private" ? "gray" : "green"}
+                >
+                  {outlet.visibility === "private"
+                    ? "Khusus anggota"
+                    : "Publik"}
+                </Badge>
               </div>
               <h2>{outlet.name}</h2>
               <p>{outlet.address}</p>
@@ -113,6 +258,15 @@ export default function OutletPage() {
                   onClick={() => openEditor(outlet)}
                 >
                   Edit outlet
+                </button>
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    setAccessOutletId(outlet.id);
+                    accessDialog.current?.showModal();
+                  }}
+                >
+                  Kelola akses
                 </button>
                 <button className="text-button" disabled>
                   Meja belum terhubung
@@ -134,6 +288,34 @@ export default function OutletPage() {
           </div>
         )}
       </div>
+      <dialog
+        ref={accessDialog}
+        className="editor-dialog access-dialog"
+        aria-labelledby="access-dialog-title"
+        onClose={() => setAccessOutletId(null)}
+      >
+        {accessOutletId && (
+          <div className="access-dialog-inner">
+            <div className="dialog-heading">
+              <div>
+                <p className="eyebrow">WORKSPACE</p>
+                <h2 id="access-dialog-title">
+                  Akses anggota · {outlets.find((outlet) => outlet.id === accessOutletId)?.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="close-button"
+                onClick={() => accessDialog.current?.close()}
+                aria-label="Tutup akses anggota"
+              >
+                ×
+              </button>
+            </div>
+            <AccessManager key={accessOutletId} outletId={accessOutletId} />
+          </div>
+        )}
+      </dialog>
       <dialog
         ref={dialog}
         className="editor-dialog"
@@ -195,6 +377,16 @@ export default function OutletPage() {
               >
                 <option value="true">Aktif</option>
                 <option value="false">Nonaktif</option>
+              </select>
+            </label>
+            <label>
+              Visibilitas
+              <select
+                name="visibility"
+                defaultValue={editor?.visibility ?? "public"}
+              >
+                <option value="public">Publik — semua pelanggan</option>
+                <option value="private">Privat — anggota terdaftar</option>
               </select>
             </label>
             <label>
