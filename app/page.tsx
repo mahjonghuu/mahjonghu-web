@@ -20,7 +20,6 @@ type TableRecord = { id: string; outletId: string; name: string; rate: number };
 type Outlet = OutletRecord & {
   tables: TableRecord[];
   price: number;
-  image: string;
 };
 
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
@@ -162,7 +161,7 @@ function BookingPage() {
     ])
       .then(([records, tables]) => {
         if (!current) return;
-        const loaded = records.map((record, index) => {
+        const loaded = records.map((record) => {
           const outletTables = tables.filter(
             (table) => table.outletId === record.id,
           );
@@ -172,11 +171,6 @@ function BookingPage() {
             price: outletTables.length
               ? Math.min(...outletTables.map((table) => table.rate))
               : 0,
-            image: [
-              "/outlet-senopati.jpg",
-              "/outlet-pik.jpg",
-              "/outlet-bandung.jpg",
-            ][index % 3],
           };
         });
         setOutlets(loaded);
@@ -502,8 +496,8 @@ function BookingPage() {
             <article className={styles.outletCard} key={item.id}>
               <div className={styles.outletImage}>
                 <Image
-                  src={item.image}
-                  alt={`Inspirasi suasana interior ${item.name}`}
+                  src="/mahjong-illustration.svg"
+                  alt=""
                   fill
                   sizes="(max-width: 650px) 100vw, (max-width: 1000px) 50vw, 33vw"
                 />

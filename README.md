@@ -32,14 +32,13 @@ npm run build
 ## Public booking preview
 
 - The public page fetches active outlets from `GET /outlets/public` and their tables and hourly rates from `GET /tables/public`. City filters, table counts, table names, and minimum hourly prices use those API responses.
-- Outlet photos remain illustrative local imagery; descriptions/amenities are not supplied by the API and are not presented as live outlet details.
+- Public outlet cards all use the same local mahjong SVG illustration; descriptions/amenities are not supplied by the API and are not presented as live outlet details.
 - Each outlet's opening and closing hours are configured in the dashboard outlet editor; the public booking grid shows one-hour slots within those hours, and checkout validates the same local-time bounds.
 - After a date is selected, the booking schedule queries `GET /bookings/availability` for each future one-hour slot. Unavailable slots cannot be selected; table-specific rates are used in estimates.
 - Selecting slots is an availability preview. Submitting the `/payment` contact form creates one atomic backend hold per table session and one aggregate DOKU Checkout; each hold and the DOKU payment page expire after 15 minutes.
 - `/payment` displays the backend-priced booking estimate and collects guest name, phone, and email before redirecting to DOKU. The backend selects separate sandbox or production credentials; `NEXT_PUBLIC_DOKU_ENV` defaults to `dev` and must be set to `prod` at build time for production.
 - DOKU returns customers to `/payment/result/<reference>`. That page polls the backend's verified notification status and shows payment and booking details. DOKU `FAILED` notifications remain pending to allow another payment method; an unpaid order becomes expired at 15 minutes.
 - Booking selections are kept in session storage when returning to the booking page. DOKU success can restore an expired hold only if payment occurred within the 15-minute deadline and the slot has not been rebooked; late or conflicting payments are flagged for manual review.
-- Local outlet photos are illustrative restaurant interiors from Unsplash, not photographs of actual MahjongHu branches: photo IDs `1517248135467-4c7edcad34c4`, `1559339352-11d035aa65de`, and `1552566626-52f8b828add9`.
 
 ## Dashboard PoC plan and implementation
 

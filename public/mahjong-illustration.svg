@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title desc">
+  <title id="title">Bidak mahjong di atas meja hijau</title>
+  <desc id="desc">Ilustrasi tiga bidak mahjong berwarna gading di atas meja hijau.</desc>
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="43%" r="74%">
+      <stop stop-color="#35705a"/>
+      <stop offset="1" stop-color="#163a31"/>
+    </radialGradient>
+    <linearGradient id="tile" x2="0" y2="1">
+      <stop stop-color="#fff9e9"/>
+      <stop offset="1" stop-color="#e8dfc3"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="17" stdDeviation="12" flood-color="#0a281e" flood-opacity=".42"/>
+    </filter>
+  </defs>
+  <path fill="url(#felt)" d="M0 0h640v400H0z"/>
+  <path d="M-40 338C129 270 219 455 412 357c83-42 151-35 262 23M-24 67C137 124 212-34 415 48c86 35 146 22 243-26" fill="none" stroke="#d9c592" stroke-opacity=".13" stroke-width="2"/>
+  <ellipse cx="320" cy="308" rx="229" ry="55" fill="#0c2b22" opacity=".26"/>
+  <g filter="url(#shadow)">
+    <g transform="translate(151 84) rotate(-12 72 108)">
+      <rect x="0" y="11" width="144" height="217" rx="13" fill="#b9ae86"/>
+      <rect width="144" height="217" rx="13" fill="url(#tile)" stroke="#eee8d2" stroke-width="3"/>
+      <rect x="13" y="13" width="118" height="190" rx="7" fill="none" stroke="#c8b995" stroke-width="2"/>
+      <text x="72" y="148" text-anchor="middle" font-family="Georgia, serif" font-size="100" fill="#2d6653">發</text>
+    </g>
+    <g transform="translate(254 72) rotate(4 72 108)">
+      <rect x="0" y="11" width="144" height="217" rx="13" fill="#b9ae86"/>
+      <rect width="144" height="217" rx="13" fill="url(#tile)" stroke="#eee8d2" stroke-width="3"/>
+      <rect x="13" y="13" width="118" height="190" rx="7" fill="none" stroke="#c8b995" stroke-width="2"/>
+      <text x="72" y="149" text-anchor="middle" font-family="Georgia, serif" font-size="100" fill="#a64e3b">中</text>
+    </g>
+    <g transform="translate(359 90) rotate(16 72 108)">
+      <rect x="0" y="11" width="144" height="217" rx="13" fill="#b9ae86"/>
+      <rect width="144" height="217" rx="13" fill="url(#tile)" stroke="#eee8d2" stroke-width="3"/>
+      <rect x="13" y="13" width="118" height="190" rx="7" fill="none" stroke="#c8b995" stroke-width="2"/>
+      <circle cx="53" cy="92" r="13" fill="#316452"/>
+      <circle cx="91" cy="92" r="13" fill="#a64e3b"/>
+      <circle cx="53" cy="134" r="13" fill="#a64e3b"/>
+      <circle cx="91" cy="134" r="13" fill="#316452"/>
+    </g>
+  </g>
+</svg>

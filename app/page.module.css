@@ -560,7 +560,6 @@
 .outletImage img {
   object-fit: cover;
   transition: transform 0.5s;
-  filter: saturate(0.65);
 }
 .outletCard:hover img {
   transform: scale(1.04);
