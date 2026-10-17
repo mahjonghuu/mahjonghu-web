@@ -341,9 +341,14 @@ function BookingPage() {
             Temukan meja untuk obrolan panjang, tawa lepas,
             <br className={styles.desktopBreak} /> dan satu ronde lagi.
           </p>
-          <a className={styles.primary} href="#booking">
-            Temukan meja kamu <Arrow diagonal />
-          </a>
+          <div className={styles.heroActions}>
+            <a className={styles.primary} href="#booking">
+              Temukan meja kamu <Arrow diagonal />
+            </a>
+            <a className={styles.heroSecondary} href="/cek-booking">
+              Cek booking saya <Arrow diagonal />
+            </a>
+          </div>
           <div className={styles.heroNote}>
             <span className={styles.miniTiles} aria-hidden="true">
               <i>發</i>
@@ -632,6 +637,18 @@ function BookingPage() {
           />
         </a>
         <p>Good tiles. Great company.</p>
+        <div className={styles.footerContact}>
+          <span>MAU PUNYA WEBSITE JUGA?</span>
+          <a
+            href="https://wa.me/62895413315500?text=Halo%2C%20saya%20tertarik%20membuat%20website."
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Chat pembuat website via WhatsApp di 0895 4133 15500"
+          >
+            Chat saya di WhatsApp <Arrow diagonal />
+            <small>0895 4133 15500</small>
+          </a>
+        </div>
         <span>
           © {new Date().getFullYear()} MahjongHu · Public booking demo
         </span>
