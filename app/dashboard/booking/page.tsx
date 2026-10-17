@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge, PageHeading } from "../components";
 import { rupiah } from "../model";
 import { useBookings } from "@/hooks/use-bookings";
+import { bookingApi, type BookingRecord } from "@/lib/booking";
 
 const statusLabels: Record<string, string> = {
   pending: "Menunggu pembayaran",
@@ -36,6 +37,29 @@ export default function BookingPage() {
   const [outletFilter, setOutletFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState("");
+  const [cancelMessage, setCancelMessage] = useState("");
+
+  async function cancelBooking(booking: BookingRecord) {
+    if (
+      !window.confirm(
+        `Batalkan booking ${booking.reference} (${booking.customerName})? Slot meja akan kembali tersedia. Refund tidak diproses otomatis.`,
+      )
+    ) return;
+    setCancellingId(booking.id);
+    setCancelError("");
+    setCancelMessage("");
+    try {
+      await bookingApi.cancel(booking.id);
+      setCancelMessage(`Booking ${booking.reference} berhasil dibatalkan. Urus refund langsung dengan pelanggan bila diperlukan.`);
+    } catch (cause) {
+      setCancelError(cause instanceof Error ? cause.message : "Gagal membatalkan booking.");
+    } finally {
+      await refresh();
+      setCancellingId(null);
+    }
+  }
   const outlets = useMemo(
     () =>
       [
@@ -133,6 +157,8 @@ export default function BookingPage() {
           {error}
         </p>
       )}
+      {cancelError && <p className="notice error" role="alert">{cancelError}</p>}
+      {cancelMessage && <p className="notice" role="status">{cancelMessage}</p>}
       {loading && (
         <p className="field-help" role="status">
           Memuat data booking…
@@ -157,6 +183,7 @@ export default function BookingPage() {
                   <th scope="col">Durasi</th>
                   <th scope="col">Total</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Tindakan</th>
                 </tr>
               </thead>
               <tbody role="rowgroup">
@@ -186,6 +213,19 @@ export default function BookingPage() {
                         {statusLabels[booking.status] ?? booking.status}
                       </Badge>
                     </td>
+                    <td role="cell" data-label="Tindakan">
+                      {booking.status === "confirmed" && (
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={cancellingId !== null}
+                          onClick={() => void cancelBooking(booking)}
+                          aria-label={`Batalkan booking ${booking.reference}`}
+                        >
+                          {cancellingId === booking.id ? "Membatalkan…" : "Batalkan"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -201,8 +241,7 @@ export default function BookingPage() {
         </section>
       )}
       <p className="field-help">
-        Halaman ini membaca booking tersimpan dari backend. Data kontak hanya
-        untuk operasional internal.
+        Pembatalan hanya tersedia untuk booking terkonfirmasi sebelum waktu mulai. Hubungi pelanggan untuk urusan refund secara manual; pembatalan tidak mengembalikan uang secara otomatis.
       </p>
     </>
   );

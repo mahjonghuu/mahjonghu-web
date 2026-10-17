@@ -8,6 +8,14 @@ import { apiRequest } from "../../../../lib/api";
 import { formatRupiah } from "../../../../lib/currency";
 import styles from "./page.module.css";
 
+const configuredPhone = (process.env.NEXT_PUBLIC_OWNER_WHATSAPP ?? "").replace(
+  /\D/g,
+  "",
+);
+const ownerPhone = configuredPhone.startsWith("0")
+  ? `62${configuredPhone.slice(1)}`
+  : configuredPhone;
+
 type PaymentBooking = {
   reference: string;
   outletName: string;
@@ -80,6 +88,12 @@ function PaymentResultDetails() {
           Math.floor((new Date(payment.expiresAt).getTime() - now) / 1000),
         )
       : 0;
+  const cancellationMessage = payment
+    ? `Halo MahjongHu, saya ingin mengajukan pembatalan booking ${payment.bookings.map((booking) => booking.reference).join(", ")} (pembayaran ${payment.reference}). Mohon informasi prosesnya.`
+    : "";
+  const cancellationLink = /^62\d{8,13}$/.test(ownerPhone)
+    ? `https://wa.me/${ownerPhone}?text=${encodeURIComponent(cancellationMessage)}`
+    : null;
   const statusLabel =
     payment?.status === "succeeded"
       ? payment.reservationNeedsReview
@@ -203,6 +217,16 @@ function PaymentResultDetails() {
                       })}{" "}
                       · {booking.durationHours} jam
                     </span>
+                    <span>
+                      Status booking:{" "}
+                      {booking.bookingStatus === "cancelled"
+                        ? "Dibatalkan"
+                        : booking.bookingStatus === "confirmed"
+                          ? "Dikonfirmasi"
+                          : booking.bookingStatus === "pending"
+                            ? "Menunggu pembayaran"
+                            : booking.bookingStatus}
+                    </span>
                   </div>
                   <strong>
                     {formatRupiah(Number(booking.totalAmountIdr))}
@@ -214,9 +238,46 @@ function PaymentResultDetails() {
                 <strong>{formatRupiah(Number(payment.amountIdr))}</strong>
               </div>
               <p className={styles.note}>
-                Status hanya berubah setelah notifikasi DOKU terverifikasi oleh
-                server. Halaman ini memeriksa status secara berkala.
+                Status pembayaran diperbarui setelah notifikasi DOKU
+                terverifikasi. Perbarui halaman ini untuk melihat pembatalan
+                booking oleh owner.
               </p>
+              <button
+                className={styles.refreshStatus}
+                type="button"
+                disabled={checking}
+                onClick={() => void refresh()}
+              >
+                {checking ? "Memeriksa…" : "Perbarui status booking"}
+              </button>
+              {payment.bookings.some(
+                (booking) =>
+                  booking.bookingStatus === "confirmed" &&
+                  new Date(booking.startsAt).getTime() > now,
+              ) && (
+                <div className={styles.cancellation}>
+                  <strong>Ingin membatalkan booking?</strong>
+                  <p>
+                    Hubungi owner dan sertakan referensi booking di atas.
+                    Pembatalan diproses oleh owner; refund, bila ada, diurus
+                    langsung dengan owner dan tidak otomatis lewat website.
+                  </p>
+                  {cancellationLink ? (
+                    <a
+                      href={cancellationLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Chat owner via WhatsApp ↗
+                    </a>
+                  ) : (
+                    <p>
+                      Kontak WhatsApp owner belum tersedia. Hubungi outlet
+                      melalui kanal kontak resmi.
+                    </p>
+                  )}
+                </div>
+              )}
             </section>
             <Link href="/#booking" className={styles.home}>
               Kembali ke MahjongHu <span aria-hidden="true">↗</span>

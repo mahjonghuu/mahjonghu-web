@@ -39,6 +39,7 @@ npm run build
 - `/payment` displays the backend-priced booking estimate and collects guest name, phone, and email before redirecting to DOKU. The backend selects separate sandbox or production credentials; `NEXT_PUBLIC_DOKU_ENV` defaults to `dev` and must be set to `prod` at build time for production.
 - DOKU returns customers to `/payment/result/<reference>`. That page polls the backend's verified notification status and shows payment and booking details. DOKU `FAILED` notifications remain pending to allow another payment method; an unpaid order becomes expired at 15 minutes.
 - Booking selections are kept in session storage when returning to the booking page. DOKU success can restore an expired hold only if payment occurred within the 15-minute deadline and the slot has not been rebooked; late or conflicting payments are flagged for manual review.
+- For customer cancellation requests after payment, set `NEXT_PUBLIC_OWNER_WHATSAPP` to the owner's WhatsApp number in international format (for example `6281234567890`, without a `+`) before building/deploying the web app. The payment result page then offers a prefilled WhatsApp message with booking references for confirmed future reservations. Without a configured valid number, no WhatsApp link is shown. Customers do not cancel bookings directly in the public area.
 
 ## Dashboard PoC plan and implementation
 
@@ -62,7 +63,7 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 
 - `app/dashboard/model.ts` retains display types and sample data used by the still-demo table-management route.
 - `app/dashboard/layout.tsx` provides shared navigation and dashboard filter state.
-- `app/dashboard/booking/page.tsx` reads persisted booking records from `GET /bookings`; the overview and revenue report render backend aggregates from `GET /dashboard/summary` and `GET /dashboard/revenue`. Table management remains demo-only.
+- `app/dashboard/booking/page.tsx` lists persisted records from `GET /bookings` and lets the owner cancel a confirmed booking via `PATCH /bookings/:id/cancel`; the server allows cancellation only before its start time. The action releases the slot, but never initiates a refund. Owner and customer arrange any refund manually outside the app. The overview and revenue report still use backend payment aggregates; cancelled bookings do not erase settled charges.
 - Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`; an unset or blank value falls back to `http://localhost:3001`. Restart Next.js after changing this build-time variable. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
 - Outlet list, create, edit, and archive requests use `GET`, `POST`, `PATCH`, and `DELETE /outlets`; booking records load through the dashboard-only `GET /bookings` endpoint.
 - Table management remains demo-only; dashboard occupancy and payment totals, per-outlet revenue, transaction details, and report CSV source rows come from the backend.

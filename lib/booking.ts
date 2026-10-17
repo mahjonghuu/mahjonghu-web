@@ -21,4 +21,9 @@ export type BookingRecord = {
 /** Loads bookings for the internal operations dashboard. */
 export const bookingApi = {
   list: () => apiRequest<BookingRecord[]>("/bookings"),
+  /** Cancels a confirmed reservation without changing its payment or issuing a refund. */
+  cancel: (id: string) =>
+    apiRequest<{ id: string; status: "cancelled" }>(`/bookings/${encodeURIComponent(id)}/cancel`, {
+      method: "PATCH",
+    }),
 };
