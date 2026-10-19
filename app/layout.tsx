@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MahjongHu — Good Tiles. Great Company.",
   description:
-    "Temukan outlet MahjongHu favoritmu, pilih waktu bermain, dan jelajahi pengalaman booking mahjong bersama teman. Pratinjau dengan data demo.",
+    "Find your favorite MahjongHu venue, choose a time to play, and plan a mahjong outing with friends.",
   icons: {
     icon: [{ url: "/logo-transparent.webp", type: "image/webp" }],
     shortcut: [{ url: "/logo-transparent.webp", type: "image/webp" }],
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="id"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

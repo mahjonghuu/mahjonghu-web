@@ -7,12 +7,12 @@ import { useBookings } from "@/hooks/use-bookings";
 import { bookingApi, type BookingRecord } from "@/lib/booking";
 
 const statusLabels: Record<string, string> = {
-  pending: "Menunggu pembayaran",
-  confirmed: "Dikonfirmasi",
-  in_progress: "Berlangsung",
-  completed: "Selesai",
-  cancelled: "Dibatalkan",
-  expired: "Kedaluwarsa",
+  pending: "Awaiting payment",
+  confirmed: "Confirmed",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  expired: "Expired",
 };
 
 const statusTone: Record<string, string> = {
@@ -25,7 +25,7 @@ const statusTone: Record<string, string> = {
 };
 
 const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat("id-ID", {
+  new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Jakarta",
@@ -44,7 +44,7 @@ export default function BookingPage() {
   async function cancelBooking(booking: BookingRecord) {
     if (
       !window.confirm(
-        `Batalkan booking ${booking.reference} (${booking.customerName})? Slot meja akan kembali tersedia. Refund tidak diproses otomatis.`,
+        `Cancel booking ${booking.reference} (${booking.customerName})? The table slot will become available again. Refunds are not processed automatically.`,
       )
     ) return;
     setCancellingId(booking.id);
@@ -52,9 +52,9 @@ export default function BookingPage() {
     setCancelMessage("");
     try {
       await bookingApi.cancel(booking.id);
-      setCancelMessage(`Booking ${booking.reference} berhasil dibatalkan. Urus refund langsung dengan pelanggan bila diperlukan.`);
+      setCancelMessage(`Booking ${booking.reference} was cancelled. Arrange a refund directly with the customer if needed.`);
     } catch (cause) {
-      setCancelError(cause instanceof Error ? cause.message : "Gagal membatalkan booking.");
+      setCancelError(cause instanceof Error ? cause.message : "Could not cancel the booking.");
     } finally {
       await refresh();
       setCancellingId(null);
@@ -68,7 +68,7 @@ export default function BookingPage() {
         ),
       ]
         .map(([id, name]) => ({ id, name }))
-        .sort((left, right) => left.name.localeCompare(right.name, "id")),
+        .sort((left, right) => left.name.localeCompare(right.name, "en")),
     [bookings],
   );
   const filteredBookings = bookings.filter((booking) => {
@@ -89,28 +89,28 @@ export default function BookingPage() {
   return (
     <>
       <PageHeading
-        title="Booking"
-        description="Pantau reservasi meja, detail pelanggan, jadwal, dan status booking."
+        title="Bookings"
+        description="Track table reservations, customer details, schedules, and booking statuses."
         action={
           <button
             className="secondary"
             onClick={() => void refresh()}
             disabled={refreshing}
           >
-            {refreshing ? "Memuat…" : "Muat ulang"}
+            {refreshing ? "Loading…" : "Refresh"}
           </button>
         }
       />
       <div className="stats-grid booking-stats">
         <article className="stat-card">
-          <div className="stat-label">Total booking</div>
+          <div className="stat-label">Total bookings</div>
           <h2>{loading ? "—" : bookings.length}</h2>
-          <p>Seluruh riwayat booking tersimpan</p>
+          <p>Complete saved booking history</p>
         </article>
         <article className="stat-card">
-          <div className="stat-label">Booking aktif</div>
+          <div className="stat-label">Active bookings</div>
           <h2>{loading ? "—" : activeCount}</h2>
-          <p>Menunggu pembayaran, dikonfirmasi, atau berlangsung</p>
+          <p>Awaiting payment, confirmed, or in progress</p>
         </article>
       </div>
       <div className="filterbar booking-filters">
@@ -120,7 +120,7 @@ export default function BookingPage() {
             value={outletFilter}
             onChange={(event) => setOutletFilter(event.target.value)}
           >
-            <option value="all">Semua outlet</option>
+            <option value="all">All outlets</option>
             {outlets.map((outlet) => (
               <option key={outlet.id} value={outlet.id}>
                 {outlet.name}
@@ -134,7 +134,7 @@ export default function BookingPage() {
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="all">Semua status</option>
+            <option value="all">All statuses</option>
             {Object.entries(statusLabels).map(([status, label]) => (
               <option key={status} value={status}>
                 {label}
@@ -143,12 +143,12 @@ export default function BookingPage() {
           </select>
         </label>
         <label className="booking-search">
-          <span className="sr-only">Cari booking</span>
+          <span className="sr-only">Search bookings</span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari nama, kontak, atau referensi"
+            placeholder="Search name, contact, or reference"
           />
         </label>
       </div>
@@ -161,49 +161,49 @@ export default function BookingPage() {
       {cancelMessage && <p className="notice" role="status">{cancelMessage}</p>}
       {loading && (
         <p className="field-help" role="status">
-          Memuat data booking…
+          Loading bookings…
         </p>
       )}
       {!loading && !error && (
         <section className="panel booking-panel">
           <div className="panel-title">
             <div>
-              <h2>Daftar booking</h2>
-              <p>{filteredBookings.length} booking ditampilkan</p>
+              <h2>Bookings</h2>
+              <p>{filteredBookings.length} bookings shown</p>
             </div>
-            <Badge tone="blue">Data tersimpan</Badge>
+            <Badge tone="blue">Saved data</Badge>
           </div>
           <div className="table-scroll">
-            <table role="table" aria-label="Daftar booking">
+            <table role="table" aria-label="Bookings">
               <thead role="rowgroup">
                 <tr role="row">
-                  <th scope="col">Referensi / pelanggan</th>
-                  <th scope="col">Outlet / meja</th>
-                  <th scope="col">Waktu mulai</th>
-                  <th scope="col">Durasi</th>
+                  <th scope="col">Reference / customer</th>
+                  <th scope="col">Outlet / table</th>
+                  <th scope="col">Start time</th>
+                  <th scope="col">Duration</th>
                   <th scope="col">Total</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Tindakan</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody role="rowgroup">
                 {filteredBookings.map((booking) => (
                   <tr key={booking.id} role="row">
-                    <td role="cell" data-label="Referensi / pelanggan">
+                    <td role="cell" data-label="Reference / customer">
                       <strong>{booking.customerName}</strong>
                       <small>
                         {booking.reference} · {booking.customerContact}
                       </small>
                     </td>
-                    <td role="cell" data-label="Outlet / meja">
+                    <td role="cell" data-label="Outlet / table">
                       <strong>{booking.outletName}</strong>
                       <small>{booking.tableName}</small>
                     </td>
-                    <td role="cell" data-label="Waktu mulai">
+                    <td role="cell" data-label="Start time">
                       {formatDateTime(booking.startsAt)}
                     </td>
-                    <td role="cell" data-label="Durasi">
-                      {booking.durationHours} jam
+                    <td role="cell" data-label="Duration">
+                      {booking.durationHours} hours
                     </td>
                     <td role="cell" data-label="Total" className="money">
                       {rupiah(Number(booking.totalAmountIdr))}
@@ -213,16 +213,16 @@ export default function BookingPage() {
                         {statusLabels[booking.status] ?? booking.status}
                       </Badge>
                     </td>
-                    <td role="cell" data-label="Tindakan">
+                    <td role="cell" data-label="Actions">
                       {booking.status === "confirmed" && (
                         <button
                           type="button"
                           className="secondary"
                           disabled={cancellingId !== null}
                           onClick={() => void cancelBooking(booking)}
-                          aria-label={`Batalkan booking ${booking.reference}`}
+                          aria-label={`Cancel booking ${booking.reference}`}
                         >
-                          {cancellingId === booking.id ? "Membatalkan…" : "Batalkan"}
+                          {cancellingId === booking.id ? "Cancelling…" : "Cancel"}
                         </button>
                       )}
                     </td>
@@ -233,15 +233,15 @@ export default function BookingPage() {
             {filteredBookings.length === 0 && (
               <div className="empty">
                 {bookings.length
-                  ? "Tidak ada booking yang cocok dengan filter."
-                  : "Belum ada booking tersimpan."}
+                  ? "No bookings match these filters."
+                  : "No bookings saved yet."}
               </div>
             )}
           </div>
         </section>
       )}
       <p className="field-help">
-        Pembatalan hanya tersedia untuk booking terkonfirmasi sebelum waktu mulai. Hubungi pelanggan untuk urusan refund secara manual; pembatalan tidak mengembalikan uang secara otomatis.
+        Cancellation is only available for confirmed bookings before their start time. Contact the customer to arrange any refund manually; cancellation does not automatically return the payment.
       </p>
     </>
   );

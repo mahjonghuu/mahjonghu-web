@@ -39,7 +39,7 @@ export function useOutlets() {
       .catch((cause: unknown) => {
         if (!cancelled)
           setError(
-            cause instanceof Error ? cause.message : "Gagal memuat outlet.",
+            cause instanceof Error ? cause.message : "Failed to load outlets.",
           );
       })
       .finally(() => {
@@ -89,7 +89,7 @@ export function useOutlets() {
       closingHour > 24 ||
       closingHour <= openingHour
     ) {
-      setError("Isi data outlet dan pastikan jam tutup setelah jam buka.");
+      setError("Complete the outlet details and set closing time after opening time.");
       return;
     }
     if (
@@ -99,7 +99,7 @@ export function useOutlets() {
           outlet.name.toLowerCase() === name.toLowerCase(),
       )
     ) {
-      setError("Nama outlet sudah digunakan.");
+      setError("Outlet name is already in use.");
       return;
     }
 
@@ -110,11 +110,11 @@ export function useOutlets() {
       if (editor) await outletApi.update(editor.id, input);
       else await outletApi.create(input);
       await refreshOutlets();
-      setMessage("Outlet berhasil disimpan.");
+      setMessage("Outlet saved.");
       closeEditor();
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Gagal menyimpan outlet.",
+        cause instanceof Error ? cause.message : "Failed to save outlet.",
       );
     } finally {
       setSaving(false);
@@ -122,16 +122,16 @@ export function useOutlets() {
   }
 
   async function archive(outlet: Outlet) {
-    if (!window.confirm(`Arsipkan ${outlet.name}?`)) return;
+    if (!window.confirm(`Archive ${outlet.name}?`)) return;
     setError("");
     try {
       await outletApi.archive(outlet.id);
       await refreshOutlets();
       if (filter === outlet.id) setFilter("all");
-      setMessage("Outlet berhasil diarsipkan.");
+      setMessage("Outlet archived.");
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Gagal mengarsipkan outlet.",
+        cause instanceof Error ? cause.message : "Failed to archive outlet.",
       );
     }
   }

@@ -11,6 +11,10 @@ import {
 import styles from "./booking-schedule.module.css";
 
 const hourLabel = (hour: number) => `${hour}:00`;
+const playDateFormat = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeZone: "Asia/Jakarta",
+});
 
 /** Renders the booking schedule and its non-reserving price preview. */
 export default function BookingSchedule({
@@ -61,16 +65,16 @@ export default function BookingSchedule({
           </h2>
         </div>
         <p>
-          Satu meja atau satu circle besar?
+          One table or your whole crew?
           <br />
-          Pilih semua meja dan jam yang kamu butuhkan.
+          Choose all the tables and hours you need.
         </p>
       </div>
       <div className={styles.controls}>
         <label>
-          <span>01 / PILIH OUTLET</span>
+          <span>01 / CHOOSE A VENUE</span>
           <select
-            aria-label="Pilih outlet"
+            aria-label="Choose a venue"
             value={outlet.id}
             onChange={(event) => onOutletChange(event.target.value)}
           >
@@ -82,10 +86,10 @@ export default function BookingSchedule({
           </select>
         </label>
         <label>
-          <span>02 / TANGGAL MAIN</span>
+          <span>02 / PLAY DATE</span>
           <input
             ref={dateInput}
-            aria-label="Tanggal main"
+            aria-label="Play date"
             type="date"
             required
             min={today}
@@ -98,59 +102,59 @@ export default function BookingSchedule({
           type="button"
           onClick={() => changeDate(today)}
         >
-          Hari ini <span aria-hidden="true">↗</span>
+          Today <span aria-hidden="true">↗</span>
         </button>
         <div className={styles.rate}>
-          <span>HARGA MULAI DARI / MEJA / JAM</span>
+          <span>STARTING PRICE / TABLE / HOUR</span>
           <strong>{formatRupiah(outlet.price)}</strong>
         </div>
       </div>
       <p className={styles.contextNote}>
-        Pilihan berlaku untuk satu outlet dan tanggal. Ganti outlet atau tanggal
-        akan mengosongkan pilihan.
+        Your selection applies to one venue and date. Changing either will clear
+        your selection.
       </p>
       <div className={styles.bookingLayout}>
         <div className={styles.schedulePanel}>
           <div className={styles.scheduleHeading}>
             <div>
               <h3>{outlet.name}</h3>
-              <p>{outlet.tables} meja · 4 pemain / meja · 12:00–22:00</p>
+              <p>{outlet.tables} tables · 4 players / table · 12:00–22:00</p>
             </div>
             <span className={styles.demoBadge}>LIVE AVAILABILITY</span>
           </div>
-          <div className={styles.legend} aria-label="Legenda ketersediaan">
+          <div className={styles.legend} aria-label="Availability legend">
             <span>
               <i />
-              Tersedia
+              Available
             </span>
             <span>
               <i className={styles.selectedKey} />
-              Pilihanmu
+              Your selection
             </span>
             <span>
               <i className={styles.bookedKey} />
-              Tidak tersedia
+              Unavailable
             </span>
-            <small>1 kotak = 1 jam / meja</small>
+            <small>1 slot = 1 hour / table</small>
           </div>
           {availabilityLoading && date && (
-            <p role="status">Memuat ketersediaan meja...</p>
+            <p role="status">Loading table availability...</p>
           )}
           {availabilityError && (
             <p role="alert">
               {availabilityError}{" "}
               <button type="button" onClick={retryAvailability}>
-                Coba lagi
+                Try again
               </button>
             </p>
           )}
           {!validDate && (
             <div className={styles.dateNotice} role="status">
               {date
-                ? "Pilih tanggal hari ini atau setelahnya untuk melanjutkan."
-                : "Pilih tanggal atau klik Hari ini untuk mulai memilih slot."}
+                ? "Choose today or a later date to continue."
+                : "Choose a date or click Today to start selecting slots."}
               <button type="button" onClick={() => dateInput.current?.focus()}>
-                Pilih tanggal <span aria-hidden="true">↑</span>
+                Choose a date <span aria-hidden="true">↑</span>
               </button>
             </div>
           )}
@@ -158,17 +162,17 @@ export default function BookingSchedule({
             className={styles.gridScroll}
             tabIndex={0}
             role="region"
-            aria-label="Jadwal meja, geser horizontal untuk melihat semua jam"
+            aria-label="Table schedule; scroll horizontally to see all hours"
           >
             <table className={styles.scheduleTable}>
               <caption className={styles.srOnly}>
-                Jadwal {outlet.name}
-                {date && `, ${date}`}. Setiap slot berdurasi satu jam. Pilih
-                beberapa slot untuk memesan beberapa meja atau jam.
+                Schedule for {outlet.name}
+                {date && `, ${date}`}. Each slot lasts one hour. Select multiple
+                slots to book more tables or hours.
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">MEJA / JAM</th>
+                  <th scope="col">TABLE / HOUR</th>
                   {hours.map((hour) => (
                     <th scope="col" key={hour}>
                       {hourLabel(hour)}
@@ -189,7 +193,7 @@ export default function BookingSchedule({
                       </span>
                       <span>
                         {nameOfTable(table)}
-                        <small>4 pemain</small>
+                        <small>4 players</small>
                       </span>
                     </th>
                     {hours.map((hour) => {
@@ -212,7 +216,7 @@ export default function BookingSchedule({
                             className={`${styles.slot} ${unavailable ? styles.booked : active ? styles.selected : ""}`}
                             disabled={blocked}
                             aria-pressed={active}
-                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${availabilityLoading ? "memuat ketersediaan" : availabilityError ? "ketersediaan gagal dimuat" : unavailable ? "tidak tersedia" : active ? "dipilih, klik untuk hapus" : "tersedia"}`}
+                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${availabilityLoading ? "loading availability" : availabilityError ? "availability could not be loaded" : unavailable ? "unavailable" : active ? "selected, click to remove" : "available"}`}
                             onClick={() => toggleSlot(table, hour)}
                           >
                             <span aria-hidden="true">
@@ -220,14 +224,14 @@ export default function BookingSchedule({
                             </span>
                             <small>
                               {availabilityLoading
-                                ? "Memuat"
+                                ? "Loading"
                                 : availabilityError
-                                  ? "Gagal"
+                                  ? "Error"
                                   : unavailable
-                                    ? "Tidak tersedia"
+                                    ? "Unavailable"
                                     : active
-                                      ? "Dipilih"
-                                      : "Pilih"}
+                                      ? "Selected"
+                                      : "Select"}
                             </small>
                           </button>
                         </td>
@@ -239,8 +243,8 @@ export default function BookingSchedule({
             </table>
           </div>
           <div className={styles.gridFooter}>
-            <span>← Geser untuk melihat jam lainnya →</span>
-            <span>Klik lagi untuk membatalkan slot.</span>
+            <span>← Scroll to see more hours →</span>
+            <span>Click again to deselect a slot.</span>
           </div>
         </div>
         <aside className={styles.summary} aria-labelledby="selection-title">
@@ -248,13 +252,13 @@ export default function BookingSchedule({
             <span className={styles.eyebrow}>YOUR GAME PLAN</span>
             <span aria-hidden="true">胡</span>
           </div>
-          <h3 id="selection-title">Pilihan kamu</h3>
+          <h3 id="selection-title">Your selection</h3>
           <p className={styles.summaryOutlet}>
             {outlet.name}
             <span>
               {date
-                ? date.split("-").reverse().join(" / ")
-                : "Belum ada tanggal dipilih"}
+                ? playDateFormat.format(new Date(`${date}T12:00:00+07:00`))
+                : "No date selected"}
             </span>
           </p>
           {selected.length === 0 ? (
@@ -262,16 +266,16 @@ export default function BookingSchedule({
               <span aria-hidden="true">▦</span>
               <strong>Good times start with a slot.</strong>
               <p>
-                Klik kotak pada jadwal. Pilih beberapa jam di meja yang sama,
-                atau ajak lebih banyak teman dengan beberapa meja.
+                Click a slot on the schedule. Choose multiple hours at the same
+                table, or bring more friends by choosing multiple tables.
               </p>
             </div>
           ) : (
             <>
               <div className={styles.selectionCount} aria-live="polite">
-                {tableCount} meja <span>·</span> {selected.length} jam-meja{" "}
+                {tableCount} tables <span>·</span> {selected.length} table-hours{" "}
                 <button type="button" onClick={clearSelection}>
-                  Hapus semua
+                  Clear all
                 </button>
               </div>
               <ul className={styles.sessionList}>
@@ -281,7 +285,7 @@ export default function BookingSchedule({
                       <strong>{nameOfTable(session.table)}</strong>
                       <span>
                         {hourLabel(session.start)}–{hourLabel(session.end)} ·{" "}
-                        {session.end - session.start} jam
+                        {session.end - session.start} hours
                       </span>
                       <b>
                         {formatRupiah(
@@ -292,7 +296,7 @@ export default function BookingSchedule({
                     </div>
                     <button
                       type="button"
-                      aria-label={`Hapus ${nameOfTable(session.table)} jam ${hourLabel(session.start)}–${hourLabel(session.end)}`}
+                      aria-label={`Remove ${nameOfTable(session.table)} from ${hourLabel(session.start)} to ${hourLabel(session.end)}`}
                       onClick={() => removeSession(session)}
                     >
                       ×
@@ -303,11 +307,11 @@ export default function BookingSchedule({
             </>
           )}
           <div className={styles.priceExplanation}>
-            Tarif meja sesuai daftar harga × {selected.length} jam-meja
-            <small>Jam-meja = total jam dari seluruh meja yang dipilih.</small>
+            Table rates × {selected.length} table-hours
+            <small>Table-hours = total hours across all selected tables.</small>
           </div>
           <div className={styles.total} aria-live="polite">
-            <span>Estimasi pembayaran</span>
+            <span>Estimated payment</span>
             <strong>{formatRupiah(total)}</strong>
           </div>
           <button
@@ -342,17 +346,16 @@ export default function BookingSchedule({
               router.push(`/payment?${params}`);
             }}
           >
-            Lihat rincian pembayaran <span aria-hidden="true">↗</span>
+            Review payment details <span aria-hidden="true">↗</span>
           </button>
           <p className={styles.disclaimer}>
-            Simulasi saja. Belum ada reservasi, penahanan meja, atau pembayaran
-            nyata.
+            Preview only. No reservation, table hold, or payment has been made.
           </p>
         </aside>
       </div>
       <p className={styles.demoFootnote}>
-        Tarif berasal dari backend; status slot diperiksa langsung untuk outlet
-        dan tanggal yang dipilih. Pilihan belum membuat reservasi atau hold.
+        Rates come from the backend; slot availability is checked live for the
+        selected venue and date. Selecting slots does not reserve or hold them.
       </p>
     </section>
   );

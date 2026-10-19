@@ -41,7 +41,7 @@ function useDokuCheckout(environment: DokuEnvironment) {
     } catch (cause) {
       const message = cause instanceof Error
         ? cause.message
-        : 'Pembayaran belum dapat dimulai. Coba lagi.';
+        : 'Unable to start payment. Please try again.';
       setError(message);
       setLoading(false);
       return null;

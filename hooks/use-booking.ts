@@ -34,7 +34,7 @@ function today() {
 }
 
 function tableLabel(table: number) {
-  return `Meja ${String(table).padStart(2, "0")}`;
+  return `Table ${String(table).padStart(2, "0")}`;
 }
 
 /** Combines adjacent selected hours on a table into one session. */
@@ -150,7 +150,7 @@ export function useBooking(outlet: BookingOutlet) {
           setAvailability({
             key: availabilityKey,
             status: "error",
-            message: "Ketersediaan meja gagal dimuat.",
+            message: "Failed to load table availability.",
           });
       });
 

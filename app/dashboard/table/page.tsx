@@ -31,15 +31,15 @@ export default function TablePage() {
   return (
     <>
       <PageHeading
-        title="Manajemen meja"
-        description="Setiap meja, setiap outlet. Semua dalam kendali."
+        title="Table management"
+        description="Every table, every outlet. All under your control."
         action={
           <button
             className="primary"
             disabled={!outlets.length || loading}
             onClick={() => openEditor()}
           >
-            ＋ Tambah meja
+            ＋ Add table
           </button>
         }
       />
@@ -51,8 +51,8 @@ export default function TablePage() {
         />
         <input
           className="search"
-          aria-label="Cari meja"
-          placeholder="Cari meja…"
+          aria-label="Search tables"
+          placeholder="Search tables…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -62,7 +62,7 @@ export default function TablePage() {
           {message}
           <button
             onClick={() => setMessage("")}
-            aria-label="Tutup pemberitahuan"
+            aria-label="Dismiss notification"
           >
             ×
           </button>
@@ -74,39 +74,39 @@ export default function TablePage() {
         </p>
       )}
       <p className="field-help">
-        Data meja dan status operasional dimuat dari API backend.
+        Table records and operational statuses are loaded from the backend API.
       </p>
       <section className="panel">
         <div className="panel-title">
           <div>
-            <h2>Daftar meja</h2>
+            <h2>Tables</h2>
             <p>
-              {tableRows.length} meja sesuai filter · perubahan status tidak
-              membuat transaksi
+              {tableRows.length} tables matching filters · changing status does
+              not create a transaction
             </p>
           </div>
-          <Badge tone="gray">{scopedTables.length} total meja</Badge>
+          <Badge tone="gray">{scopedTables.length} total tables</Badge>
         </div>
         <div className="table-scroll">
-          <table role="table" aria-label="Daftar meja">
+          <table role="table" aria-label="Tables">
             <thead role="rowgroup">
               <tr role="row">
-                <th scope="col">Nama meja</th>
+                <th scope="col">Table name</th>
                 <th scope="col">Outlet</th>
-                <th scope="col">Tarif / jam</th>
+                <th scope="col">Rate / hour</th>
                 <th scope="col">Status</th>
-                <th scope="col">Aksi</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody role="rowgroup">
               {loading ? (
                 <tr>
-                  <td colSpan={5}>Memuat meja…</td>
+                  <td colSpan={5}>Loading tables…</td>
                 </tr>
               ) : (
                 tableRows.map((table) => (
                   <tr key={table.id} role="row">
-                    <td role="cell" data-label="Nama meja">
+                    <td role="cell" data-label="Table name">
                       <strong className="table-name">
                         <span className="table-icon">
                           <Icon index={2} />
@@ -117,9 +117,9 @@ export default function TablePage() {
                     <td role="cell" data-label="Outlet">
                       {outletName(table.outletId)}
                       {!outlets.find((outlet) => outlet.id === table.outletId)
-                        ?.active && <small>Outlet nonaktif</small>}
+                        ?.active && <small>Inactive outlet</small>}
                     </td>
-                    <td role="cell" data-label="Tarif / jam" className="money">
+                    <td role="cell" data-label="Rate / hour" className="money">
                       {rupiah(table.rate)}
                     </td>
                     <td role="cell" data-label="Status">
@@ -132,10 +132,10 @@ export default function TablePage() {
                               : "amber"
                         }
                       >
-                        {table.status}
+                        {table.status === "Tersedia" ? "Available" : table.status === "Digunakan" ? "In use" : "Maintenance"}
                       </Badge>
                     </td>
-                    <td role="cell" data-label="Aksi">
+                    <td role="cell" data-label="Actions">
                       <div className="row-actions">
                         <button
                           className="secondary"
@@ -150,7 +150,7 @@ export default function TablePage() {
                           className="delete-button"
                           onClick={() => removeTable(table)}
                         >
-                          Hapus
+                          Delete
                           <span className="sr-only"> {table.name}</span>
                         </button>
                       </div>
@@ -162,7 +162,7 @@ export default function TablePage() {
           </table>
           {!tableRows.length && (
             <div className="empty">
-              Tidak ada meja. Tambahkan meja atau ubah pencarian.
+              No tables found. Add a table or change your search.
             </div>
           )}
         </div>
@@ -177,26 +177,26 @@ export default function TablePage() {
             <div className="dialog-heading">
               <div>
                 <p className="eyebrow">WORKSPACE</p>
-                <h2>{editor ? "Edit meja" : "Tambah meja"}</h2>
+                <h2>{editor ? "Edit table" : "Add table"}</h2>
               </div>
               <button
                 type="button"
                 className="close-button"
                 onClick={closeEditor}
-                aria-label="Tutup form"
+                aria-label="Close form"
               >
                 ×
               </button>
             </div>
             <label>
-              Nama meja
+              Table name
               <input
                 name="name"
                 required
                 maxLength={80}
                 defaultValue={editor?.name}
                 autoFocus
-                placeholder="Meja 05"
+                placeholder="Table 05"
               />
             </label>
             <label>
@@ -223,14 +223,14 @@ export default function TablePage() {
                     value={editor.outletId}
                   />
                   <p className="field-help">
-                    Outlet meja tidak dapat dipindah untuk menjaga konsistensi
-                    riwayat.
+                    A table cannot be moved to another outlet to preserve
+                    booking history.
                   </p>
                 </>
               )}
             </label>
             <label>
-              Tarif per jam (Rp)
+              Hourly rate (Rp)
               <input
                 name="rate"
                 type="number"
@@ -242,15 +242,15 @@ export default function TablePage() {
               />
             </label>
             <label>
-              Status meja
+              Table status
               <select
                 name="status"
                 defaultValue={editor?.status ?? "Tersedia"}
                 disabled={editor?.status === "Digunakan"}
               >
-                <option>Tersedia</option>
-                {editor?.status === "Digunakan" && <option>Digunakan</option>}
-                <option>Perawatan</option>
+                <option value="Tersedia">Available</option>
+                {editor?.status === "Digunakan" && <option value="Digunakan">In use</option>}
+                <option value="Perawatan">Maintenance</option>
               </select>
             </label>
             {error && (
@@ -259,15 +259,15 @@ export default function TablePage() {
               </p>
             )}
             <p className="field-help">
-              Status Digunakan mengikuti reservasi aktif. Meja dengan riwayat
-              reservasi tidak dapat dihapus.
+              In-use status follows active reservations. Tables with booking
+              history cannot be deleted.
             </p>
             <div className="dialog-actions">
               <button type="button" className="secondary" onClick={closeEditor}>
-                Batal
+                Cancel
               </button>
               <button type="submit" className="primary" disabled={saving}>
-                {saving ? "Menyimpan…" : "Simpan perubahan"}
+                {saving ? "Saving…" : "Save changes"}
               </button>
             </div>
           </form>

@@ -22,14 +22,14 @@ type BookingResult = {
 type LookupResult = { bookings: BookingResult[] };
 
 const bookingLabels: Record<BookingResult["status"], string> = {
-  pending: "Menunggu pembayaran",
-  confirmed: "Dikonfirmasi",
-  in_progress: "Sedang berlangsung",
-  completed: "Selesai",
-  cancelled: "Dibatalkan",
-  expired: "Kedaluwarsa",
+  pending: "Awaiting payment",
+  confirmed: "Confirmed",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  expired: "Expired",
 };
-const bookingDateTime = new Intl.DateTimeFormat("id-ID", {
+const bookingDateTime = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "Asia/Jakarta",
@@ -58,7 +58,7 @@ export default function CheckBookingPage() {
       setError(
         cause instanceof Error
           ? cause.message
-          : "Booking belum bisa diperiksa. Coba lagi nanti.",
+          : "Could not check your bookings. Please try again later.",
       );
     } finally {
       setChecking(false);
@@ -71,47 +71,47 @@ export default function CheckBookingPage() {
         <Link
           href="/"
           className={styles.brand}
-          aria-label="Kembali ke beranda MahjongHu"
+          aria-label="Back to MahjongHu home"
         >
           <Image src="/logo-transparent.webp" alt="" width={48} height={48} />
           <span>
             Mahjong<span>Hu</span>
           </span>
         </Link>
-        <Link href="/">← Kembali ke beranda</Link>
+        <Link href="/">← Back to home</Link>
       </header>
       <div className={styles.content}>
-        <p className={styles.eyebrow}>MAHJONGHU / RESERVASI</p>
+        <p className={styles.eyebrow}>MAHJONGHU / RESERVATIONS</p>
         <h1>
-          Cek booking kamu<span>.</span>
+          Check your booking<span>.</span>
         </h1>
         <p className={styles.intro}>
-          Masukkan nomor telepon yang digunakan saat memesan untuk melihat
-          status booking meja kamu.
+          Enter the phone number you used when booking to see the status of your
+          table reservation.
         </p>
         <div className={styles.layout}>
           <form
             className={styles.card}
             onSubmit={(event) => void checkBooking(event)}
           >
-            <h2>Temukan pesananmu</h2>
-            <label htmlFor="booking-phone">Nomor telepon saat booking</label>
+            <h2>Find your reservation</h2>
+            <label htmlFor="booking-phone">Booking phone number</label>
             <input
               id="booking-phone"
               type="tel"
               autoComplete="tel"
               inputMode="tel"
-              placeholder="Contoh: 0895 1234 5678"
+              placeholder="Example: 0895 1234 5678"
               required
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
             <p className={styles.help}>
-              Gunakan nomor yang kamu isi saat checkout. Kamu bisa menulisnya
-              dengan awalan 0 atau +62.
+              Use the number you entered at checkout. You can start it with 0 or
+              +62.
             </p>
             <button type="submit" disabled={checking}>
-              {checking ? "Memeriksa…" : "Cek status booking →"}
+              {checking ? "Checking…" : "Check booking status →"}
             </button>
             {error && (
               <p role="alert" className={styles.error}>
@@ -122,24 +122,24 @@ export default function CheckBookingPage() {
           <section
             className={styles.results}
             aria-live="polite"
-            aria-label="Hasil cek booking"
+            aria-label="Booking lookup results"
           >
             {result && result.bookings.length > 0 ? (
               <>
-                <p className={styles.eyebrow}>HASIL PENCARIAN</p>
-                <h2>Booking ditemukan</h2>
+                <p className={styles.eyebrow}>SEARCH RESULTS</p>
+                <h2>Bookings found</h2>
                 <ul className={styles.bookingList}>
                   {result.bookings.map((booking, index) => (
                     <li key={index}>
                       <span className={styles.bookingIndex}>
-                        Reservasi {index + 1}
+                        Reservation {index + 1}
                       </span>
                       <strong>
                         {booking.tableName} · {booking.outletName}
                       </strong>
                       <span>
                         {bookingDateTime.format(new Date(booking.startsAt))} ·{" "}
-                        {booking.durationHours} jam
+                        {booking.durationHours} hours
                       </span>
                       <span className={styles.status}>
                         {bookingLabels[booking.status]}
@@ -148,26 +148,26 @@ export default function CheckBookingPage() {
                   ))}
                 </ul>
                 <p className={styles.help}>
-                  Booking menunggu pembayaran belum dikonfirmasi. Jika status
-                  reservasi perlu ditanyakan, hubungi owner.
+                  Bookings awaiting payment are not confirmed. If you have
+                  questions about your reservation status, contact the owner.
                 </p>
               </>
             ) : result ? (
               <div className={styles.empty}>
                 <span aria-hidden="true">胡</span>
-                <h2>Belum ada booking</h2>
+                <h2>No bookings yet</h2>
                 <p>
-                  Tidak ada booking untuk nomor tersebut. Periksa kembali nomor
-                  telepon yang digunakan saat checkout.
+                  No bookings were found for this number. Check the phone number
+                  you used at checkout.
                 </p>
               </div>
             ) : (
               <div className={styles.empty}>
                 <span aria-hidden="true">胡</span>
-                <h2>Rencana mainmu, satu tempat.</h2>
+                <h2>Your plans, all in one place.</h2>
                 <p>
-                  Detail meja, waktu, dan status booking akan tampil di sini
-                  setelah datamu cocok.
+                  Your table, time, and booking status will appear here once we
+                  find your details.
                 </p>
               </div>
             )}

@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
       cache: "no-store",
     });
   } catch {
-    return new NextResponse("Layanan autentikasi sementara tidak tersedia.", {
+    return new NextResponse("Authentication service is temporarily unavailable.", {
       status: 503,
     });
   }
@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
   if (authResponse.status >= 500) {
-    return new NextResponse("Layanan autentikasi sementara tidak tersedia.", {
+    return new NextResponse("Authentication service is temporarily unavailable.", {
       status: 503,
     });
   }

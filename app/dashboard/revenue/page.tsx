@@ -12,7 +12,11 @@ import { rupiah } from "../model";
 import { getRevenueReport, type RevenueReport } from "@/lib/revenue";
 import { useWorkspace } from "../workspace-state";
 
-const statuses = ["Tersedia", "Digunakan", "Perawatan"] as const;
+const statuses = [
+  { value: "Tersedia", label: "Available" },
+  { value: "Digunakan", label: "In use" },
+  { value: "Perawatan", label: "Maintenance" },
+] as const;
 
 /** Displays backend-calculated revenue aggregates and exports matching payments. */
 export default function RevenuePage() {
@@ -37,7 +41,7 @@ export default function RevenuePage() {
           setError(
             requestError instanceof Error
               ? requestError.message
-              : "Laporan pendapatan tidak dapat dimuat.",
+              : "Could not load the revenue report.",
           );
         }
       })
@@ -57,11 +61,11 @@ export default function RevenuePage() {
     const rows = [
       [
         "ID",
-        "Tanggal",
+        "Date",
         "Outlet",
-        "Pelanggan",
-        "Durasi (jam)",
-        "Pendapatan (IDR)",
+        "Customer",
+        "Duration (hours)",
+        "Revenue (IDR)",
       ],
       ...(report?.transactions ?? []).map((transaction) => [
         transaction.id,
@@ -80,7 +84,7 @@ export default function RevenuePage() {
     );
     const link = document.createElement("a");
     link.href = url;
-    link.download = `pendapatan-${from || "semua"}-${to || "semua"}.csv`;
+    link.download = `revenue-${from || "all"}-${to || "all"}.csv`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -92,13 +96,13 @@ export default function RevenuePage() {
   return (
     <>
       <PageHeading
-        title="Laporan pendapatan"
-        description="Lihat pendapatan dan rincian transaksi bisnis Anda."
+        title="Revenue reports"
+        description="Review your business revenue and transaction details."
         action={
           <div className="date-note">
             <span className="calendar-icon">▦</span>
             <span>
-              DATA LIVE<small>Data pembayaran backend</small>
+              LIVE DATA<small>Backend payment data</small>
             </span>
           </div>
         }
@@ -113,7 +117,7 @@ export default function RevenuePage() {
       </div>
       {from && to && from > to && (
         <p className="notice error" role="alert">
-          Tanggal mulai tidak boleh melewati tanggal akhir.
+          Start date must not be after end date.
         </p>
       )}
       {!loading && error && (
@@ -125,7 +129,7 @@ export default function RevenuePage() {
         <div
           className="dashboard-skeleton"
           role="status"
-          aria-label="Memuat laporan pendapatan"
+          aria-label="Loading revenue report"
           aria-busy="true"
         >
           <div className="dashboard-skeleton-stats">
@@ -154,51 +158,51 @@ export default function RevenuePage() {
       ) : (
         <>
           <p className="field-help">
-            Laporan dihitung dari pembayaran berhasil yang tersimpan di backend.
+            Reports are calculated from successful payments saved in the backend.
           </p>
           <div className="stats-grid">
             <article className="stat-card highlight">
               <div className="stat-label">
-                Total pendapatan <Icon index={3} />
+                Total revenue <Icon index={3} />
               </div>
               <h2>{rupiah(Number(metrics?.revenueIdr ?? 0))}</h2>
               <p>
-                <span className="stat-dot" /> Transaksi lunas dalam periode
+                <span className="stat-dot" /> Paid transactions during this period
               </p>
             </article>
             <article className="stat-card">
               <div className="stat-label">
-                Transaksi lunas <Icon index={3} />
+                Paid transactions <Icon index={3} />
               </div>
               <h2>
                 {metrics?.paidTransactionCount ?? 0}
-                <span>transaksi</span>
+                <span>transactions</span>
               </h2>
-              <p>{metrics?.playedHours ?? 0} jam bermain tercatat</p>
+              <p>{metrics?.playedHours ?? 0} playing hours recorded</p>
             </article>
             <article className="stat-card">
               <div className="stat-label">
-                Rata-rata transaksi <Icon index={2} />
+                Average transaction <Icon index={2} />
               </div>
               <h2>{rupiah(metrics?.averageTransactionIdr ?? 0)}</h2>
-              <p>Dari transaksi lunas terfilter</p>
+              <p>For filtered paid transactions</p>
             </article>
             <article className="stat-card">
               <div className="stat-label">
-                Outlet aktif <Icon index={1} />
+                Active outlets <Icon index={1} />
               </div>
               <h2>
                 {metrics?.activeOutletCount ?? 0}
                 <span>outlet</span>
               </h2>
-              <p>Siap melayani pelanggan</p>
+              <p>Ready to welcome customers</p>
             </article>
           </div>
           <section className="panel revenue-panel">
             <div className="panel-title">
               <div>
-                <h2>Pendapatan per outlet</h2>
-                <p>Kontribusi pada periode terpilih</p>
+                <h2>Revenue by outlet</h2>
+                <p>Contribution during the selected period</p>
               </div>
               <span className="subtle-label">IDR</span>
             </div>
@@ -220,19 +224,19 @@ export default function RevenuePage() {
                 </div>
               ))}
               {!report?.revenueByOutlet.length && (
-                <p className="empty">Belum ada outlet.</p>
+                <p className="empty">No outlets yet.</p>
               )}
             </div>
             <div className="panel-foot">
-              Pendapatan berasal dari pembayaran berhasil, bukan status meja.
+              Revenue comes from successful payments, not table status.
             </div>
           </section>
           <section className="panel transactions">
             <div className="panel-title">
               <div>
-                <h2>Rincian transaksi</h2>
+                <h2>Transaction details</h2>
                 <p>
-                  {report?.transactions.length ?? 0} transaksi sesuai filter
+                  {report?.transactions.length ?? 0} transactions matching filters
                 </p>
               </div>
               <button
@@ -243,25 +247,25 @@ export default function RevenuePage() {
                 }
                 onClick={exportCsv}
               >
-                ↓ Ekspor CSV
+                ↓ Export CSV
               </button>
             </div>
             <div className="table-scroll">
-              <table role="table" aria-label="Rincian transaksi pendapatan">
+              <table role="table" aria-label="Revenue transaction details">
                 <thead role="rowgroup">
                   <tr role="row">
-                    <th scope="col">Transaksi / pelanggan</th>
+                    <th scope="col">Transaction / customer</th>
                     <th scope="col">Outlet</th>
-                    <th scope="col">Tanggal</th>
-                    <th scope="col">Durasi</th>
-                    <th scope="col">Pendapatan</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col">Revenue</th>
                     <th scope="col">Status</th>
                   </tr>
                 </thead>
                 <tbody role="rowgroup">
                   {report?.transactions.map((transaction) => (
                     <tr key={transaction.id} role="row">
-                      <td role="cell" data-label="Transaksi / pelanggan">
+                      <td role="cell" data-label="Transaction / customer">
                         <strong>{transaction.customer}</strong>
                         <small>
                           {transaction.id} · {transaction.tableName}
@@ -270,22 +274,22 @@ export default function RevenuePage() {
                       <td role="cell" data-label="Outlet">
                         {transaction.outletName.replace("MahjongHu ", "")}
                       </td>
-                      <td role="cell" data-label="Tanggal">
-                        {new Intl.DateTimeFormat("id-ID", {
+                      <td role="cell" data-label="Date">
+                        {new Intl.DateTimeFormat("en-US", {
                           day: "numeric",
                           month: "short",
                           year: "numeric",
                           timeZone: "Asia/Jakarta",
                         }).format(new Date(transaction.settledAt))}
                       </td>
-                      <td role="cell" data-label="Durasi">
-                        {transaction.hours} jam
+                      <td role="cell" data-label="Duration">
+                        {transaction.hours} hours
                       </td>
-                      <td role="cell" data-label="Pendapatan" className="money">
+                      <td role="cell" data-label="Revenue" className="money">
                         {rupiah(Number(transaction.amountIdr))}
                       </td>
                       <td role="cell" data-label="Status">
-                        <Badge>Lunas</Badge>
+                        <Badge>Paid</Badge>
                       </td>
                     </tr>
                   ))}
@@ -293,7 +297,7 @@ export default function RevenuePage() {
               </table>
               {!report?.transactions.length && (
                 <div className="empty">
-                  Tidak ada pembayaran berhasil pada periode ini.
+                  No successful payments during this period.
                 </div>
               )}
             </div>
@@ -301,23 +305,23 @@ export default function RevenuePage() {
           <section className="panel availability">
             <div className="panel-title">
               <div>
-                <h2>Kesiapan meja</h2>
-                <p>Status operasional saat ini</p>
+                <h2>Table availability</h2>
+                <p>Current operational status</p>
               </div>
               <Icon index={2} />
             </div>
             <div className="status-list">
-              {statuses.map((status, index) => (
-                <div key={status}>
+              {statuses.map(({ value, label }, index) => (
+                <div key={value}>
                   <span>
                     <i className={`legend-dot segment-${index}`} />
-                    {status}
+                    {label}
                   </span>
-                  <strong>{tableCount(status)}</strong>
+                  <strong>{tableCount(value)}</strong>
                 </div>
               ))}
             </div>
-            <Badge tone="gray">{metrics?.tableCount ?? 0} total meja</Badge>
+            <Badge tone="gray">{metrics?.tableCount ?? 0} total tables</Badge>
           </section>
         </>
       )}

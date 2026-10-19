@@ -38,6 +38,15 @@ type PaymentStatus = {
   bookings: PaymentBooking[];
 };
 
+const bookingStatusLabels: Record<string, string> = {
+  pending: "Awaiting payment",
+  confirmed: "Confirmed",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  expired: "Expired",
+};
+
 /** Shows the verified backend status and the booking details for a DOKU order. */
 function PaymentResultDetails() {
   const params = useParams<{ reference: string }>();
@@ -59,7 +68,7 @@ function PaymentResultDetails() {
         setError("");
       } catch (cause) {
         setError(
-          cause instanceof Error ? cause.message : "Status belum dapat dimuat.",
+          cause instanceof Error ? cause.message : "Could not load the status.",
         );
       } finally {
         if (manual) setChecking(false);
@@ -89,7 +98,7 @@ function PaymentResultDetails() {
         )
       : 0;
   const cancellationMessage = payment
-    ? `Halo MahjongHu, saya ingin mengajukan pembatalan booking ${payment.bookings.map((booking) => booking.reference).join(", ")} (pembayaran ${payment.reference}). Mohon informasi prosesnya.`
+    ? `Hello MahjongHu, I would like to request cancellation of booking ${payment.bookings.map((booking) => booking.reference).join(", ")} (payment ${payment.reference}). Please let me know the process.`
     : "";
   const cancellationLink = /^62\d{8,13}$/.test(ownerPhone)
     ? `https://wa.me/${ownerPhone}?text=${encodeURIComponent(cancellationMessage)}`
@@ -97,16 +106,16 @@ function PaymentResultDetails() {
   const statusLabel =
     payment?.status === "succeeded"
       ? payment.reservationNeedsReview
-        ? "Pembayaran berhasil · perlu konfirmasi booking"
-        : "Pembayaran berhasil"
+        ? "Payment successful · booking needs confirmation"
+        : "Payment successful"
       : payment?.status === "expired" || payment?.status === "failed"
-        ? "Pembayaran gagal atau kedaluwarsa"
-        : "Menunggu konfirmasi pembayaran";
+        ? "Payment failed or expired"
+        : "Awaiting payment confirmation";
 
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="MahjongHu beranda">
+        <Link href="/" className={styles.brand} aria-label="MahjongHu home">
           <Image src="/logo-transparent.webp" alt="" width={52} height={52} />
           <span>
             Mahjong<span>Hu</span>
@@ -116,32 +125,32 @@ function PaymentResultDetails() {
       </header>
       <div className={styles.content}>
         <Link className={styles.back} href="/#booking">
-          ← Kembali ke halaman booking
+          ← Back to booking
         </Link>
         {error && !payment ? (
           <section className={styles.card}>
-            <p className={styles.eyebrow}>STATUS TIDAK TERSEDIA</p>
-            <h1>Status pembayaran belum dapat dimuat.</h1>
+            <p className={styles.eyebrow}>STATUS UNAVAILABLE</p>
+            <h1>Could not load payment status.</h1>
             <p>{error}</p>
             <button
               type="button"
               onClick={() => void refresh()}
               disabled={checking}
             >
-              {checking ? "Memeriksa…" : "Cek status pembayaran"}
+              {checking ? "Checking…" : "Check payment status"}
             </button>
           </section>
         ) : !payment ? (
           <section className={styles.card} aria-live="polite">
             <p className={styles.eyebrow}>DOKU CHECKOUT</p>
-            <h1>Memeriksa pembayaran…</h1>
-            <p>Server belum merespons? Cek status pembayaran kembali.</p>
+            <h1>Checking payment…</h1>
+            <p>Still waiting for the server? Check the payment status again.</p>
             <button
               type="button"
               onClick={() => void refresh()}
               disabled={checking}
             >
-              {checking ? "Memeriksa…" : "Cek status pembayaran"}
+              {checking ? "Checking…" : "Check payment status"}
             </button>
           </section>
         ) : (
@@ -160,26 +169,26 @@ function PaymentResultDetails() {
               </span>
               <h1>{statusLabel}</h1>
               {payment.status === "pending" ? (
-                <p>Silakan selesaikan pembayaran sebelum hold meja berakhir.</p>
+                <p>Please complete payment before the table hold expires.</p>
               ) : payment.reservationNeedsReview ? (
                 <p>
-                  Pembayaran berhasil, tetapi hold meja sudah berakhir atau slot
-                  berubah. Tim MahjongHu perlu meninjau booking ini.
+                  Payment succeeded, but the table hold has expired or the slot
+                  has changed. The MahjongHu team needs to review this booking.
                 </p>
               ) : payment.status === "succeeded" ? (
                 <p>
-                  Terima kasih, {payment.customerName}. Pembayaran sudah
-                  dikonfirmasi.
+                  Thank you, {payment.customerName}. Your payment has been
+                  confirmed.
                 </p>
               ) : (
                 <p>
-                  Waktu pembayaran 15 menit sudah habis. Hold meja telah
-                  dilepas.
+                  The 15-minute payment window has ended. The table hold has
+                  been released.
                 </p>
               )}
               {payment.status === "pending" && (
                 <div className={styles.countdown}>
-                  <span>SISA WAKTU PEMBAYARAN</span>
+                  <span>PAYMENT TIME REMAINING</span>
                   <strong>
                     {String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}
                     :{String(remainingSeconds % 60).padStart(2, "0")}
@@ -192,15 +201,15 @@ function PaymentResultDetails() {
                   onClick={() => void refresh()}
                   disabled={checking}
                 >
-                  {checking ? "Memeriksa…" : "Cek status pembayaran"}
+                  {checking ? "Checking…" : "Check payment status"}
                 </button>
               )}
             </section>
             <section className={styles.details} aria-labelledby="details-title">
               <div className={styles.detailsHeading}>
                 <div>
-                  <p className={styles.eyebrow}>RINGKASAN PEMESANAN</p>
-                  <h2 id="details-title">Detail pembayaran</h2>
+                  <p className={styles.eyebrow}>ORDER SUMMARY</p>
+                  <h2 id="details-title">Payment details</h2>
                 </div>
                 <span>{payment.reference}</span>
               </div>
@@ -211,21 +220,17 @@ function PaymentResultDetails() {
                       {booking.tableName} · {booking.outletName}
                     </strong>
                     <span>
-                      {new Date(booking.startsAt).toLocaleString("id-ID", {
+                      {new Date(booking.startsAt).toLocaleString("en-GB", {
                         dateStyle: "medium",
                         timeStyle: "short",
+                        timeZone: "Asia/Jakarta",
                       })}{" "}
-                      · {booking.durationHours} jam
+                      · {booking.durationHours} hours
                     </span>
                     <span>
-                      Status booking:{" "}
-                      {booking.bookingStatus === "cancelled"
-                        ? "Dibatalkan"
-                        : booking.bookingStatus === "confirmed"
-                          ? "Dikonfirmasi"
-                          : booking.bookingStatus === "pending"
-                            ? "Menunggu pembayaran"
-                            : booking.bookingStatus}
+                      Booking status:{" "}
+                      {bookingStatusLabels[booking.bookingStatus] ??
+                        booking.bookingStatus}
                     </span>
                   </div>
                   <strong>
@@ -234,13 +239,12 @@ function PaymentResultDetails() {
                 </article>
               ))}
               <div className={styles.total}>
-                <span>Total pembayaran</span>
+                <span>Total payment</span>
                 <strong>{formatRupiah(Number(payment.amountIdr))}</strong>
               </div>
               <p className={styles.note}>
-                Status pembayaran diperbarui setelah notifikasi DOKU
-                terverifikasi. Perbarui halaman ini untuk melihat pembatalan
-                booking oleh owner.
+                Payment status updates after DOKU notifications are verified.
+                Refresh this page to see booking cancellations by the owner.
               </p>
               <button
                 className={styles.refreshStatus}
@@ -248,7 +252,7 @@ function PaymentResultDetails() {
                 disabled={checking}
                 onClick={() => void refresh()}
               >
-                {checking ? "Memeriksa…" : "Perbarui status booking"}
+                {checking ? "Checking…" : "Refresh booking status"}
               </button>
               {payment.bookings.some(
                 (booking) =>
@@ -256,11 +260,11 @@ function PaymentResultDetails() {
                   new Date(booking.startsAt).getTime() > now,
               ) && (
                 <div className={styles.cancellation}>
-                  <strong>Ingin membatalkan booking?</strong>
+                  <strong>Want to cancel your booking?</strong>
                   <p>
-                    Hubungi owner dan sertakan referensi booking di atas.
-                    Pembatalan diproses oleh owner; refund, bila ada, diurus
-                    langsung dengan owner dan tidak otomatis lewat website.
+                    Contact the owner and include the booking reference above.
+                    The owner handles cancellations and any refunds directly;
+                    refunds are not processed automatically through this website.
                   </p>
                   {cancellationLink ? (
                     <a
@@ -268,19 +272,19 @@ function PaymentResultDetails() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Chat owner via WhatsApp ↗
+                      Chat with the owner on WhatsApp ↗
                     </a>
                   ) : (
                     <p>
-                      Kontak WhatsApp owner belum tersedia. Hubungi outlet
-                      melalui kanal kontak resmi.
+                      The owner’s WhatsApp contact is unavailable. Contact the
+                      venue through its official channels.
                     </p>
                   )}
                 </div>
               )}
             </section>
             <Link href="/#booking" className={styles.home}>
-              Kembali ke MahjongHu <span aria-hidden="true">↗</span>
+              Back to MahjongHu <span aria-hidden="true">↗</span>
             </Link>
           </>
         )}
@@ -293,7 +297,7 @@ export default function PaymentResultPage() {
     <Suspense
       fallback={
         <main className={styles.page}>
-          <p className={styles.content}>Memuat status pembayaran…</p>
+          <p className={styles.content}>Loading payment status…</p>
         </main>
       }
     >

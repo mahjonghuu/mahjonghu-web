@@ -81,11 +81,11 @@ export function OutletSelect({
     <label className="select-field">
       <Icon index={1} />
       <select
-        aria-label="Filter outlet"
+        aria-label="Filter outlets"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="all">Semua outlet</option>
+        <option value="all">All outlets</option>
         {outlets.map((outlet) => (
           <option key={outlet.id} value={outlet.id}>
             {outlet.name}
@@ -111,9 +111,9 @@ export function DateRange({
   return (
     <div className="date-range">
       <label>
-        Dari
+        From
         <input
-          aria-label="Tanggal mulai"
+          aria-label="Start date"
           type="date"
           value={from}
           max={to}
@@ -122,9 +122,9 @@ export function DateRange({
       </label>
       <span>—</span>
       <label>
-        Sampai
+        To
         <input
-          aria-label="Tanggal akhir"
+          aria-label="End date"
           type="date"
           value={to}
           min={from}
@@ -148,24 +148,24 @@ export function TransactionTable({
   limit?: number;
 }) {
   const outletName = (id: string) =>
-    outlets.find((outlet) => outlet.id === id)?.name ?? "Outlet dihapus";
+    outlets.find((outlet) => outlet.id === id)?.name ?? "Deleted outlet";
   return (
     <div className="table-scroll">
-      <table role="table" aria-label="Transaksi">
+      <table role="table" aria-label="Transactions">
         <thead role="rowgroup">
           <tr role="row">
-            <th scope="col">Transaksi / pelanggan</th>
+            <th scope="col">Transaction / customer</th>
             <th scope="col">Outlet</th>
-            <th scope="col">Tanggal</th>
-            <th scope="col">Durasi</th>
-            <th scope="col">Pendapatan</th>
+            <th scope="col">Date</th>
+            <th scope="col">Duration</th>
+            <th scope="col">Revenue</th>
             <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody role="rowgroup">
           {transactions.slice(0, limit).map((transaction) => (
             <tr key={transaction.id} role="row">
-              <td role="cell" data-label="Transaksi / pelanggan">
+              <td role="cell" data-label="Transaction / customer">
                 <strong>{transaction.customer}</strong>
                 <small>
                   {transaction.id} ·{" "}
@@ -178,20 +178,20 @@ export function TransactionTable({
               <td role="cell" data-label="Outlet">
                 {outletName(transaction.outletId).replace("MahjongHu ", "")}
               </td>
-              <td role="cell" data-label="Tanggal">
+              <td role="cell" data-label="Date">
                 {new Date(`${transaction.date}T12:00:00`).toLocaleDateString(
-                  "id-ID",
+                  "en-US",
                   { day: "numeric", month: "short", year: "numeric" },
                 )}
               </td>
-              <td role="cell" data-label="Durasi">
-                {transaction.hours} jam
+              <td role="cell" data-label="Duration">
+                {transaction.hours} hours
               </td>
-              <td role="cell" data-label="Pendapatan" className="money">
+              <td role="cell" data-label="Revenue" className="money">
                 {rupiah(transaction.amount)}
               </td>
               <td role="cell" data-label="Status">
-                <Badge>Lunas</Badge>
+                <Badge>Paid</Badge>
               </td>
             </tr>
           ))}
@@ -199,7 +199,7 @@ export function TransactionTable({
       </table>
       {!transactions.length && (
         <div className="empty">
-          Tidak ada transaksi pada outlet dan periode ini.
+          No transactions for this outlet and period.
         </div>
       )}
     </div>

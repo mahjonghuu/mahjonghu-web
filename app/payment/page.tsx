@@ -18,6 +18,10 @@ type Session = {
   hours: number;
   amount: number;
 };
+const playDateFormat = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeZone: "Asia/Jakarta",
+});
 
 function PaymentDetails() {
   const params = useSearchParams();
@@ -62,7 +66,7 @@ function PaymentDetails() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <Link className={styles.brand} href="/" aria-label="MahjongHu beranda">
+        <Link className={styles.brand} href="/" aria-label="MahjongHu home">
           <Image src="/logo-transparent.webp" alt="" width={56} height={56} />
           <span>
             Mahjong<span>Hu</span>
@@ -74,9 +78,9 @@ function PaymentDetails() {
       <div className={styles.content}>
         <div className={styles.topline}>
           <Link href="/#booking" className={styles.back}>
-            <span aria-hidden="true">←</span> Kembali ke pilihan meja
+            <span aria-hidden="true">←</span> Back to table selection
           </Link>
-          <span className={styles.step}>02 / 02 &nbsp;·&nbsp; RINCIAN</span>
+          <span className={styles.step}>02 / 02 &nbsp;·&nbsp; DETAILS</span>
         </div>
 
         <div className={styles.intro}>
@@ -84,11 +88,11 @@ function PaymentDetails() {
             <span /> YOUR GAME PLAN, UP CLOSE
           </p>
           <h1>
-            Rincian <em>permainanmu.</em>
+            Your <em>game plan.</em>
           </h1>
           <p>
-            Cek kembali pilihan meja dan estimasi biaya, lalu lengkapi data
-            kontakmu. Pemesanan akan ditahan selama 15 menit setelah checkout dimulai.
+            Review your tables and estimated cost, then enter your contact
+            details. Your tables will be held for 15 minutes once checkout starts.
           </p>
         </div>
 
@@ -97,39 +101,39 @@ function PaymentDetails() {
             <section className={styles.contact} aria-labelledby="contact-title">
               <form onSubmit={submitCheckout}>
                 <div className={styles.cardHeading}>
-                  <span className={styles.sectionIndex}>DATA KONTAK</span>
-                  <h2 id="contact-title">Siapa yang akan main?</h2>
-                  <p>Data ini digunakan untuk membuat pembayaran DOKU.</p>
+                  <span className={styles.sectionIndex}>CONTACT DETAILS</span>
+                  <h2 id="contact-title">Who’s playing?</h2>
+                  <p>These details are used to create your DOKU payment.</p>
                 </div>
               <div className={styles.fields}>
                 <label>
-                  <span>Nama lengkap</span>
+                  <span>Full name</span>
                   <input
                     name="name"
                     type="text"
                     autoComplete="name"
-                    placeholder="Nama sesuai identitas"
+                    placeholder="Name as shown on your ID"
                     required
                   />
                 </label>
                 <label>
-                  <span>Nomor telepon</span>
+                  <span>Phone number</span>
                   <input
                     name="phone"
                     type="tel"
                     autoComplete="tel"
                     inputMode="tel"
-                    placeholder="Contoh: 0812 3456 7890"
+                    placeholder="Example: 0812 3456 7890"
                     required
                   />
                 </label>
                 <label>
-                  <span>Alamat email</span>
+                  <span>Email address</span>
                   <input
                     name="email"
                     type="email"
                     autoComplete="email"
-                    placeholder="nama@email.com"
+                    placeholder="name@email.com"
                     required
                   />
                 </label>
@@ -137,12 +141,12 @@ function PaymentDetails() {
                 <div className={styles.action}>
                   {error && <p className={styles.error} role="alert">{error}</p>}
                   <button type="submit" disabled={loading}>
-                    {loading ? "Menghubungkan ke DOKU…" : `Lanjutkan ke DOKU ${environment}`}
+                    {loading ? "Connecting to DOKU…" : `Continue to DOKU ${environment}`}
                     {!loading && <span aria-hidden="true">↗</span>}
                   </button>
                   <p>
-                    Slot akan ditahan selama 15 menit. Jika pembayaran tidak
-                    selesai, hold dilepas otomatis.
+                    Your slots will be held for 15 minutes. If payment is not
+                    completed, the hold will be released automatically.
                   </p>
                 </div>
               </form>
@@ -151,15 +155,15 @@ function PaymentDetails() {
             <aside className={styles.summary} aria-labelledby="summary-title">
               <div className={styles.summaryTop}>
                 <div className={styles.summaryHeading}>
-                  <span>RINGKASAN PILIHAN</span>
+                  <span>YOUR SELECTION</span>
                   <span className={styles.tile} aria-hidden="true">
                     胡
                   </span>
                 </div>
                 <h2 id="summary-title">
-                  Meja untuk
+                  Tables for
                   <br />
-                  <em>momenmu.</em>
+                  <em>your moment.</em>
                 </h2>
                 <div className={styles.location}>
                   <div>
@@ -167,16 +171,18 @@ function PaymentDetails() {
                     <strong>{outlet}</strong>
                   </div>
                   <div>
-                    <span>TANGGAL MAIN</span>
-                    <strong>{date?.split("-").reverse().join(" / ")}</strong>
+                    <span>PLAY DATE</span>
+                    <strong>
+                      {date && playDateFormat.format(new Date(`${date}T12:00:00+07:00`))}
+                    </strong>
                   </div>
                 </div>
               </div>
               <div className={styles.summaryBody}>
                 <div className={styles.listHeading}>
-                  <strong>Rincian sewa meja</strong>
+                  <strong>Table rental details</strong>
                   <span>
-                    {params.get("tables")} meja · {params.get("hours")} jam-meja
+                    {params.get("tables")} tables · {params.get("hours")} table-hours
                   </span>
                 </div>
                 <ul className={styles.sessions}>
@@ -185,7 +191,7 @@ function PaymentDetails() {
                       <div>
                         <strong>{session.table}</strong>
                         <span>
-                          {session.start}–{session.end} · {session.hours} jam ×{" "}
+                          {session.start}–{session.end} · {session.hours} hours ×{" "}
                           {formatRupiah(session.amount / session.hours)}
                         </span>
                       </div>
@@ -195,13 +201,13 @@ function PaymentDetails() {
                 </ul>
                 <div className={styles.total}>
                   <span>
-                    Total estimasi <small>Sewa meja saja</small>
+                    Estimated total <small>Table rental only</small>
                   </span>
                   <strong>{formatRupiah(total)}</strong>
                 </div>
                 <p className={styles.summaryNote}>
-                  Ini bukan tagihan atau bukti reservasi. Ketersediaan meja
-                  dapat berubah sebelum pemesanan tersedia.
+                  This is not a bill or proof of reservation. Table availability
+                  may change before your booking is confirmed.
                 </p>
               </div>
             </aside>
@@ -209,13 +215,12 @@ function PaymentDetails() {
         ) : (
           <section className={styles.empty} aria-labelledby="empty-title">
             <span aria-hidden="true">▦</span>
-            <h2 id="empty-title">Belum ada pilihan meja.</h2>
+            <h2 id="empty-title">No tables selected yet.</h2>
             <p>
-              Pilih outlet, tanggal, dan jam main terlebih dahulu untuk melihat
-              rinciannya.
+              Choose a venue, date, and time slots to see the details here.
             </p>
             <Link href="/#booking">
-              Pilih meja <span aria-hidden="true">↗</span>
+              Choose a table <span aria-hidden="true">↗</span>
             </Link>
           </section>
         )}
@@ -227,7 +232,7 @@ function PaymentDetails() {
   );
 }
 
-/** Standalone public preview of selected tables and contact fields; no booking or payment is submitted. */
+/** Shows selected tables and collects contact details before starting DOKU checkout. */
 export default function PaymentPage() {
   return (
     <Suspense>

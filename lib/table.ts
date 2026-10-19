@@ -43,7 +43,7 @@ export const tableApi = {
   async list(): Promise<TableApiRecord[]> {
     const records = await apiRequest<unknown>("/tables");
     if (!Array.isArray(records) || !records.every(isTableApiRecord))
-      throw new Error("Respons daftar meja tidak valid.");
+      throw new Error("Invalid table list response.");
     return records;
   },
 

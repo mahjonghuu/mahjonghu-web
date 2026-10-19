@@ -32,7 +32,7 @@ export default function DashboardLoginPage() {
       window.localStorage.removeItem("ownerToken");
       router.replace("/dashboard");
     } catch {
-      setError("Email atau password tidak valid.");
+      setError("Invalid email or password.");
     } finally {
       setSubmitting(false);
     }
@@ -42,7 +42,7 @@ export default function DashboardLoginPage() {
     <main className={styles.page}>
       <div className={styles.shell}>
         <header className={styles.header}>
-          <Link href="/" className={styles.brand} aria-label="MahjongHu, kembali ke beranda">
+          <Link href="/" className={styles.brand} aria-label="MahjongHu, back to home">
             <Image
               src="/logo-transparent.webp"
               alt=""
@@ -56,18 +56,17 @@ export default function DashboardLoginPage() {
               <small>BUSINESS SPACE</small>
             </span>
           </Link>
-          <span className={styles.accessLabel}>AREA KHUSUS OWNER</span>
+          <span className={styles.accessLabel}>OWNER ACCESS ONLY</span>
         </header>
 
         <div className={styles.content}>
           <section className={styles.intro} aria-labelledby="intro-title">
-            <p className={styles.eyebrow}><span /> RUANG KERJA MAHJONGHU</p>
+            <p className={styles.eyebrow}><span /> MAHJONGHU WORKSPACE</p>
             <h1 id="intro-title">
-              Selamat datang di <em>ruang kerja.</em>
+              Welcome to your <em>workspace.</em>
             </h1>
             <p className={styles.introCopy}>
-              Satu tempat untuk melihat aktivitas dan mengelola operasional
-              MahjongHu.
+              One place to view activity and manage MahjongHu operations.
             </p>
             <div className={styles.tiles} aria-hidden="true">
               <span className={styles.tile}><i /><i /><i /></span>
@@ -78,9 +77,9 @@ export default function DashboardLoginPage() {
 
           <section className={styles.card} aria-labelledby="login-title">
             <div className={styles.cardHeading}>
-              <span className={styles.cardEyebrow}>AKSES DASHBOARD</span>
-              <h2 id="login-title">Masuk ke dashboard</h2>
-              <p>Gunakan akun owner untuk melanjutkan.</p>
+              <span className={styles.cardEyebrow}>DASHBOARD ACCESS</span>
+              <h2 id="login-title">Sign in to the dashboard</h2>
+              <p>Use your owner account to continue.</p>
             </div>
             <form onSubmit={submit} className={styles.form}>
               <label className={styles.field}>
@@ -88,7 +87,7 @@ export default function DashboardLoginPage() {
                 <input
                   autoComplete="username"
                   type="email"
-                  placeholder="nama@email.com"
+                  placeholder="name@email.com"
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -99,7 +98,7 @@ export default function DashboardLoginPage() {
                 <input
                   autoComplete="current-password"
                   type="password"
-                  placeholder="Masukkan password"
+                  placeholder="Enter your password"
                   required
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -111,13 +110,13 @@ export default function DashboardLoginPage() {
                 </p>
               )}
               <button type="submit" disabled={submitting}>
-                {submitting ? "Memeriksa…" : "Masuk ke dashboard"}
+                {submitting ? "Checking…" : "Sign in to dashboard"}
                 <span aria-hidden="true">↗</span>
               </button>
             </form>
             <div className={styles.cardFooter}>
-              <span>Hanya untuk tim internal MahjongHu</span>
-              <Link href="/">Kembali ke beranda <span aria-hidden="true">↗</span></Link>
+              <span>For the MahjongHu internal team only</span>
+              <Link href="/">Back to home <span aria-hidden="true">↗</span></Link>
             </div>
           </section>
         </div>

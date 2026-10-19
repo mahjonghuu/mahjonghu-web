@@ -79,7 +79,7 @@ export function initialData(): WorkspaceData {
     Array.from({ length: 4 }, (_, i) => ({
       id: `t${index * 4 + i + 1}`,
       outletId: outlet.id,
-      name: `Meja ${String(i + 1).padStart(2, "0")}`,
+      name: `Table ${String(i + 1).padStart(2, "0")}`,
       rate: i === 3 ? 100000 : 75000,
       status:
         i === 0

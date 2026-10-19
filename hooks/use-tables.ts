@@ -63,7 +63,7 @@ export function useTables() {
       .catch((cause: unknown) => {
         if (!cancelled)
           setError(
-            cause instanceof Error ? cause.message : "Gagal memuat meja.",
+            cause instanceof Error ? cause.message : "Failed to load tables.",
           );
       })
       .finally(() => {
@@ -79,7 +79,7 @@ export function useTables() {
   );
   const tableRows = scopedTables.filter((table) => {
     const outlet = outlets.find((item) => item.id === table.outletId);
-    return `${table.name} ${outlet?.name ?? "Outlet dihapus"}`
+    return `${table.name} ${outlet?.name ?? "Deleted outlet"}`
       .toLowerCase()
       .includes(query.toLowerCase());
   });
@@ -107,7 +107,7 @@ export function useTables() {
         (editor?.status === "Digunakan" ? "Digunakan" : ""),
     );
     if (!name) {
-      setError("Nama meja tidak boleh kosong.");
+      setError("Table name cannot be empty.");
       return;
     }
     if (
@@ -115,11 +115,13 @@ export function useTables() {
       !Number.isSafeInteger(rate) ||
       rate <= 0
     ) {
-      setError("Pilih outlet dan isi tarif rupiah bulat lebih dari nol.");
+      setError(
+        "Select an outlet and enter a positive whole-number rate in rupiah.",
+      );
       return;
     }
     if (status === "Digunakan" && editor?.status !== "Digunakan") {
-      setError("Status Digunakan ditentukan oleh reservasi aktif.");
+      setError("Occupied status is determined by active reservations.");
       return;
     }
     if (
@@ -127,7 +129,7 @@ export function useTables() {
       status !== "Perawatan" &&
       status !== "Digunakan"
     ) {
-      setError("Status meja tidak valid.");
+      setError("Invalid table status.");
       return;
     }
     setSaving(true);
@@ -145,11 +147,11 @@ export function useTables() {
       else if (editableStatus)
         await tableApi.create({ ...input, status: editableStatus, outletId });
       await refresh();
-      setMessage("Perubahan meja berhasil disimpan.");
+      setMessage("Table changes saved.");
       closeEditor();
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Gagal menyimpan meja.",
+        cause instanceof Error ? cause.message : "Failed to save table.",
       );
     } finally {
       setSaving(false);
@@ -158,24 +160,24 @@ export function useTables() {
 
   async function removeTable(table: MahjongTable) {
     if (table.status === "Digunakan") {
-      setMessage("Meja sedang digunakan dan tidak dapat dihapus.");
+      setMessage("This table is occupied and cannot be deleted.");
       return;
     }
-    if (!window.confirm(`Hapus ${table.name}?`)) return;
+    if (!window.confirm(`Delete ${table.name}?`)) return;
     setError("");
     try {
       await tableApi.archive(table.id);
       await refresh();
-      setMessage("Meja berhasil dihapus.");
+      setMessage("Table deleted.");
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Gagal menghapus meja.",
+        cause instanceof Error ? cause.message : "Failed to delete table.",
       );
     }
   }
 
   const outletName = (id: string) =>
-    outlets.find((outlet) => outlet.id === id)?.name ?? "Outlet dihapus";
+    outlets.find((outlet) => outlet.id === id)?.name ?? "Deleted outlet";
 
   return {
     outlets,

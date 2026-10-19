@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { bookingApi, type BookingRecord } from "@/lib/booking";
 
 const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Booking tidak dapat dimuat.";
+  error instanceof Error ? error.message : "Unable to load bookings.";
 
 /** Loads persisted booking records and exposes refresh/error state for the dashboard. */
 export function useBookings() {

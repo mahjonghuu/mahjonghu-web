@@ -11,10 +11,10 @@ import "./workspace.css";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: 0 },
-  { label: "Booking", href: "/dashboard/booking", icon: 4 },
-  { label: "Outlet", href: "/dashboard/outlet", icon: 1 },
-  { label: "Meja", href: "/dashboard/table", icon: 2 },
-  { label: "Laporan pendapatan", href: "/dashboard/revenue", icon: 3 },
+  { label: "Bookings", href: "/dashboard/booking", icon: 4 },
+  { label: "Outlets", href: "/dashboard/outlet", icon: 1 },
+  { label: "Tables", href: "/dashboard/table", icon: 2 },
+  { label: "Revenue reports", href: "/dashboard/revenue", icon: 3 },
 ];
 
 function DashboardShell({ children }: { children: ReactNode }) {
@@ -43,7 +43,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
         <div className="workspace-label">
           WORKSPACE <span>PRO</span>
         </div>
-        <nav aria-label="Navigasi internal">
+        <nav aria-label="Internal navigation">
           {navigation.map((item) => {
             const selected = item.href === active.href;
             return (
@@ -81,7 +81,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
                   });
               }}
 >
-              Keluar
+              Log out
             </button>
           </div>
         </header>

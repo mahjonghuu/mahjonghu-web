@@ -39,7 +39,7 @@ export const outletApi = {
   async list(): Promise<OutletApiRecord[]> {
     const records = await apiRequest<unknown>("/outlets");
     if (!Array.isArray(records))
-      throw new Error("Respons daftar outlet tidak valid.");
+      throw new Error("Invalid outlet list response.");
     return records as OutletApiRecord[];
   },
 

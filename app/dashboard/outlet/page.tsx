@@ -22,7 +22,7 @@ function AccessManager({ outletId }: { outletId: string }) {
       .catch((cause: unknown) => {
         if (active)
           setError(
-            cause instanceof Error ? cause.message : "Gagal memuat akses.",
+            cause instanceof Error ? cause.message : "Could not load access.",
           );
       })
       .finally(() => {
@@ -45,7 +45,7 @@ function AccessManager({ outletId }: { outletId: string }) {
       (!Number.isFinite(expiryDate.getTime()) ||
         expiryDate.getTime() <= Date.now())
     ) {
-      setError("Masa berlaku harus di masa depan.");
+      setError("Expiry must be in the future.");
       return;
     }
     const expiresAt = expiryDate?.toISOString();
@@ -57,7 +57,7 @@ function AccessManager({ outletId }: { outletId: string }) {
       form.reset();
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Gagal memberikan akses.",
+        cause instanceof Error ? cause.message : "Could not grant access.",
       );
     } finally {
       setSaving(false);
@@ -72,7 +72,7 @@ function AccessManager({ outletId }: { outletId: string }) {
       setGrants(await outletApi.access(outletId));
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Gagal mencabut akses.",
+        cause instanceof Error ? cause.message : "Could not revoke access.",
       );
     } finally {
       setSaving(false);
@@ -82,25 +82,25 @@ function AccessManager({ outletId }: { outletId: string }) {
   return (
     <div className="access-manager">
       <p className="field-help">
-        Hanya pelanggan yang membuat booking perlu akses; teman yang ikut tidak
-        perlu login.
+        Only customers making a booking need access; accompanying guests do not
+        need to sign in.
       </p>
       <form onSubmit={(event) => void grant(event)}>
         <label>
-          Email anggota{" "}
+          Member email{" "}
           <input
             name="email"
             type="email"
             required
-            placeholder="anggota@email.com"
+            placeholder="member@email.com"
           />
         </label>
         <label>
-          Berlaku sampai (opsional){" "}
+          Expires at (optional){" "}
           <input name="expiresAt" type="datetime-local" />
         </label>
         <button className="secondary" type="submit" disabled={saving}>
-          {saving ? "Menyimpan…" : "Berikan akses"}
+          {saving ? "Saving…" : "Grant access"}
         </button>
       </form>
       {error && (
@@ -109,7 +109,7 @@ function AccessManager({ outletId }: { outletId: string }) {
         </p>
       )}
       {loading ? (
-        <p role="status">Memuat daftar anggota…</p>
+        <p role="status">Loading members…</p>
       ) : error && !grants.length ? null : grants.length ? (
         <ul>
           {grants.map((entry) => (
@@ -117,23 +117,23 @@ function AccessManager({ outletId }: { outletId: string }) {
               <span>
                 {entry.email} ·{" "}
                 {entry.expiresAt
-                  ? `Sampai ${new Date(entry.expiresAt).toLocaleString("id-ID")}`
-                  : "Tanpa batas waktu"}
+                  ? `Until ${new Date(entry.expiresAt).toLocaleString("en-US")}`
+                  : "No expiry"}
               </span>
               <button
                 className="delete-button"
                 type="button"
                 disabled={saving}
                 onClick={() => void revoke(entry.userId)}
-                aria-label={`Cabut akses ${entry.email}`}
+                aria-label={`Revoke access for ${entry.email}`}
               >
-                Cabut
+                Revoke
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <p>Belum ada anggota dengan akses.</p>
+        <p>No members have access yet.</p>
       )}
     </div>
   );
@@ -167,11 +167,11 @@ export default function OutletPage() {
   return (
     <>
       <PageHeading
-        title="Manajemen outlet"
-        description="Kelola lokasi dan operasional seluruh outlet Anda."
+        title="Outlet management"
+        description="Manage locations and operations across all your outlets."
         action={
           <button className="primary" onClick={() => openEditor()}>
-            ＋ Tambah outlet
+            ＋ Add outlet
           </button>
         }
       />
@@ -179,11 +179,11 @@ export default function OutletPage() {
         <label className="select-field">
           <Icon index={1} />
           <select
-            aria-label="Filter outlet"
+            aria-label="Filter outlets"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
           >
-            <option value="all">Semua outlet</option>
+            <option value="all">All outlets</option>
             {outlets.map((outlet) => (
               <option value={outlet.id} key={outlet.id}>
                 {outlet.name}
@@ -193,8 +193,8 @@ export default function OutletPage() {
         </label>
         <input
           className="search"
-          aria-label="Cari outlet"
-          placeholder="Cari outlet…"
+          aria-label="Search outlets"
+          placeholder="Search outlets…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -204,7 +204,7 @@ export default function OutletPage() {
           {message}
           <button
             onClick={() => setMessage("")}
-            aria-label="Tutup pemberitahuan"
+            aria-label="Dismiss notification"
           >
             ×
           </button>
@@ -216,11 +216,11 @@ export default function OutletPage() {
         </p>
       )}
       <p className="field-help">
-        Manajemen outlet terhubung ke API lokal. Data meja dan laporan masih
-        demo.
+        Outlet management is connected to the local API. Table records and
+        reports also use backend data.
       </p>
       <div className="outlet-grid">
-        {loading && <p className="panel empty">Memuat outlet dari API…</p>}
+        {loading && <p className="panel empty">Loading outlets from API…</p>}
         {filteredOutlets.map((outlet, index) => (
           <article className="panel outlet-card" key={outlet.id}>
             <div className={`outlet-art art-${index % 3}`}>
@@ -234,23 +234,23 @@ export default function OutletPage() {
               <div className="outlet-card-top">
                 <span className="eyebrow">{outlet.city}</span>
                 <Badge tone={outlet.active ? "green" : "gray"}>
-                  {outlet.active ? "Aktif" : "Nonaktif"}
+                  {outlet.active ? "Active" : "Inactive"}
                 </Badge>
                 <Badge
                   tone={outlet.visibility === "private" ? "gray" : "green"}
                 >
                   {outlet.visibility === "private"
-                    ? "Khusus anggota"
-                    : "Publik"}
+                    ? "Members only"
+                    : "Public"}
                 </Badge>
               </div>
               <h2>{outlet.name}</h2>
               <p>{outlet.address}</p>
               <div className="outlet-detail">
                 <span>
-                  <Icon index={2} /> {outlet.tableCount ?? 0} meja
+                  <Icon index={2} /> {outlet.tableCount ?? 0} tables
                 </span>
-                <span>{outlet.occupiedTableCount ?? 0} digunakan</span>
+                <span>{outlet.occupiedTableCount ?? 0} in use</span>
               </div>
               <div className="card-actions">
                 <button
@@ -266,17 +266,17 @@ export default function OutletPage() {
                     accessDialog.current?.showModal();
                   }}
                 >
-                  Kelola akses
+                  Manage access
                 </button>
                 <button className="text-button" disabled>
-                  Meja belum terhubung
+                  Tables not connected
                 </button>
                 <button
                   className="delete-button"
-                  aria-label={`Arsipkan ${outlet.name}`}
+                  aria-label={`Archive ${outlet.name}`}
                   onClick={() => void archive(outlet)}
                 >
-                  Arsipkan
+                  Archive
                 </button>
               </div>
             </div>
@@ -284,7 +284,7 @@ export default function OutletPage() {
         ))}
         {!loading && !filteredOutlets.length && (
           <div className="panel empty">
-            Tidak ada outlet. Tambahkan outlet baru atau ubah pencarian.
+            No outlets found. Add an outlet or change your search.
           </div>
         )}
       </div>
@@ -300,14 +300,14 @@ export default function OutletPage() {
               <div>
                 <p className="eyebrow">WORKSPACE</p>
                 <h2 id="access-dialog-title">
-                  Akses anggota · {outlets.find((outlet) => outlet.id === accessOutletId)?.name}
+                  Member access · {outlets.find((outlet) => outlet.id === accessOutletId)?.name}
                 </h2>
               </div>
               <button
                 type="button"
                 className="close-button"
                 onClick={() => accessDialog.current?.close()}
-                aria-label="Tutup akses anggota"
+                aria-label="Close member access"
               >
                 ×
               </button>
@@ -326,19 +326,19 @@ export default function OutletPage() {
             <div className="dialog-heading">
               <div>
                 <p className="eyebrow">WORKSPACE</p>
-                <h2>{editor ? "Edit outlet" : "Tambah outlet"}</h2>
+                <h2>{editor ? "Edit outlet" : "Add outlet"}</h2>
               </div>
               <button
                 type="button"
                 className="close-button"
                 onClick={closeEditor}
-                aria-label="Tutup form"
+                aria-label="Close form"
               >
                 ×
               </button>
             </div>
             <label>
-              Nama outlet
+              Outlet name
               <input
                 name="name"
                 required
@@ -349,7 +349,7 @@ export default function OutletPage() {
               />
             </label>
             <label>
-              Kota
+              City
               <input
                 name="city"
                 required
@@ -359,38 +359,38 @@ export default function OutletPage() {
               />
             </label>
             <label>
-              Alamat
+              Address
               <textarea
                 name="address"
                 required
                 maxLength={240}
                 rows={3}
                 defaultValue={editor?.address}
-                placeholder="Alamat lengkap outlet"
+                placeholder="Full outlet address"
               />
             </label>
             <label>
-              Status operasional
+              Operational status
               <select
                 name="active"
                 defaultValue={String(editor?.active ?? true)}
               >
-                <option value="true">Aktif</option>
-                <option value="false">Nonaktif</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
               </select>
             </label>
             <label>
-              Visibilitas
+              Visibility
               <select
                 name="visibility"
                 defaultValue={editor?.visibility ?? "public"}
               >
-                <option value="public">Publik — semua pelanggan</option>
-                <option value="private">Privat — anggota terdaftar</option>
+                <option value="public">Public — all customers</option>
+                <option value="private">Private — registered members</option>
               </select>
             </label>
             <label>
-              Jam buka
+              Opening hour
               <select
                 name="openingHour"
                 defaultValue={String(editor?.openingHour ?? 12)}
@@ -404,7 +404,7 @@ export default function OutletPage() {
               </select>
             </label>
             <label>
-              Jam tutup
+              Closing hour
               <select
                 name="closingHour"
                 defaultValue={String(editor?.closingHour ?? 22)}
@@ -425,7 +425,7 @@ export default function OutletPage() {
               </p>
             )}
             <p className="field-help">
-              Perubahan outlet disimpan melalui API lokal.
+              Outlet changes are saved through the local API.
             </p>
             <div className="dialog-actions">
               <button
@@ -434,10 +434,10 @@ export default function OutletPage() {
                 onClick={closeEditor}
                 disabled={saving}
               >
-                Batal
+                Cancel
               </button>
               <button type="submit" className="primary" disabled={saving}>
-                {saving ? "Menyimpan…" : "Simpan perubahan"}
+                {saving ? "Saving…" : "Save changes"}
               </button>
             </div>
           </form>

@@ -46,7 +46,7 @@ export async function apiRequest<T>(
       const errorBody = body as ApiErrorBody;
       const message = Array.isArray(errorBody?.message)
         ? errorBody.message.join(", ")
-        : (errorBody?.message ?? `Permintaan gagal (${response.status}).`);
+        : (errorBody?.message ?? `Request failed (${response.status}).`);
       throw new ApiError(message, response.status);
     }
     console.info("[api] request completed", {
