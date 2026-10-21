@@ -249,8 +249,11 @@ export default function OutletPage() {
                 </Badge>
               </div>
               <h2>{outlet.name}</h2>
-              <p>{outlet.address}</p>
-              <p>Shared hourly rate: {outlet.rate.toLocaleString("id-ID")} IDR (1h)</p>
+              <p className="outlet-address">{outlet.address}</p>
+              <div className="outlet-rate">
+                <span>BASE RATE · 1 HOUR</span>
+                <strong>Rp {outlet.rate.toLocaleString("id-ID")} / hour</strong>
+              </div>
               <div className="outlet-detail">
                 <span>
                   <Icon index={2} /> {outlet.tableCount ?? 0} tables
@@ -272,9 +275,6 @@ export default function OutletPage() {
                   }}
                 >
                   Manage access
-                </button>
-                <button className="text-button" disabled>
-                  Tables not connected
                 </button>
                 <button
                   className="delete-button"
