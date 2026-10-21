@@ -246,6 +246,22 @@
   color: #89947d;
   margin-top: 4px;
 }
+.scheduleTable thead .dayBand th {
+  height: 32px;
+  padding: 0 12px;
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #6d806b;
+  background: #edf1e6;
+}
+.scheduleTable thead .dayBand th:last-child {
+  border-left: 2px solid #b5c9ad;
+  color: #285741;
+}
+.scheduleTable thead .hourRowAfterBand th {
+  top: 32px;
+}
 .scheduleTable th:first-child {
   position: sticky;
   left: 0;

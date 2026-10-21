@@ -50,6 +50,8 @@ export default function BookingSchedule({
     retryAvailability,
   } = booking;
   const hours = bookingHours(outlet);
+  const openingDayHours = hours.filter((hour) => hour < 24).length;
+  const nextDayHours = hours.length - openingDayHours;
   const dateInput = useRef<HTMLInputElement>(null);
 
   return (
@@ -165,21 +167,39 @@ export default function BookingSchedule({
             role="region"
             aria-label="Table schedule; scroll horizontally to see all hours"
           >
-            <table className={styles.scheduleTable}>
+            <table
+              className={styles.scheduleTable}
+              style={{ minWidth: Math.max(820, 125 + hours.length * 64) }}
+            >
               <caption className={styles.srOnly}>
                 Schedule for {outlet.name}
                 {date && `, ${date}`}. Each slot lasts one hour. Select multiple
                 slots to book more tables or hours.
               </caption>
               <thead>
-                <tr>
-                  <th scope="col">TABLE / HOUR</th>
-                  {hours.map((hour) => (
-                    <th scope="col" key={hour}>
-                      {hourLabel(hour)}
-                      <span>{hourLabel(hour + 1)}</span>
+                {nextDayHours > 0 && (
+                  <tr className={styles.dayBand}>
+                    <th aria-hidden="true" />
+                    <th scope="colgroup" colSpan={openingDayHours}>
+                      OPENING DAY
                     </th>
-                  ))}
+                    <th scope="colgroup" colSpan={nextDayHours}>
+                      NEXT DAY
+                    </th>
+                  </tr>
+                )}
+                <tr className={nextDayHours > 0 ? styles.hourRowAfterBand : undefined}>
+                  <th scope="col">TABLE / HOUR</th>
+                  {hours.map((hour) => {
+                    const start = `${String(hour % 24).padStart(2, "0")}:00`;
+                    const end = `${String((hour + 1) % 24).padStart(2, "0")}:00`;
+                    return (
+                      <th scope="col" key={hour}>
+                        {start}
+                        <span>{end}</span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
