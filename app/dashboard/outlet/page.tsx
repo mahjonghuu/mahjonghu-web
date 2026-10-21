@@ -410,13 +410,12 @@ export default function OutletPage() {
                 defaultValue={String(editor?.closingHour ?? 22)}
                 required
               >
-                {Array.from({ length: 24 }, (_, index) => index + 1).map(
-                  (hour) => (
-                    <option key={hour} value={hour}>
-                      {String(hour % 24).padStart(2, "0")}:00
-                    </option>
-                  ),
-                )}
+                {Array.from({ length: 25 }, (_, hour) => hour).map((hour) => (
+                  <option key={hour} value={hour}>
+                    {String(hour % 24).padStart(2, "0")}:00
+                    {hour === 24 ? " (end of day)" : hour === 0 ? " (next day if after opening)" : " (next day if before opening)"}
+                  </option>
+                ))}
               </select>
             </label>
             {error && (

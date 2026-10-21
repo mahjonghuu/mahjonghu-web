@@ -85,11 +85,11 @@ export function useOutlets() {
       !Number.isInteger(closingHour) ||
       openingHour < 0 ||
       openingHour > 23 ||
-      closingHour < 1 ||
+      closingHour < 0 ||
       closingHour > 24 ||
-      closingHour <= openingHour
+      closingHour === openingHour
     ) {
-      setError("Complete the outlet details and set closing time after opening time.");
+      setError("Complete the outlet details and choose different opening and closing times.");
       return;
     }
     if (

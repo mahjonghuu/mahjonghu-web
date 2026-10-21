@@ -171,7 +171,7 @@ function PaymentDetails() {
                     <strong>{outlet}</strong>
                   </div>
                   <div>
-                    <span>PLAY DATE</span>
+                    <span>OPERATING DATE</span>
                     <strong>
                       {date && playDateFormat.format(new Date(`${date}T12:00:00+07:00`))}
                     </strong>

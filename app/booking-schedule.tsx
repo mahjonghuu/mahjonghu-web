@@ -8,9 +8,10 @@ import {
   useBooking,
   type BookingOutlet,
 } from "@/hooks/use-booking";
+import { operatingHourDate, operatingHourLabel } from "@/lib/operating-hours";
 import styles from "./booking-schedule.module.css";
 
-const hourLabel = (hour: number) => `${hour}:00`;
+const hourLabel = operatingHourLabel;
 const playDateFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeZone: "Asia/Jakarta",
@@ -110,15 +111,15 @@ export default function BookingSchedule({
         </div>
       </div>
       <p className={styles.contextNote}>
-        Your selection applies to one venue and date. Changing either will clear
-        your selection.
+        Your selection applies to one venue and operating date. Hours marked next day
+        fall on the following calendar date. Changing venue or date clears your selection.
       </p>
       <div className={styles.bookingLayout}>
         <div className={styles.schedulePanel}>
           <div className={styles.scheduleHeading}>
             <div>
               <h3>{outlet.name}</h3>
-              <p>{outlet.tables} tables · 4 players / table · 12:00–22:00</p>
+              <p>{outlet.tables} tables · 4 players / table · {hourLabel(outlet.openingHour)}–{hourLabel(outlet.closingHour < outlet.openingHour ? outlet.closingHour + 24 : outlet.closingHour)}</p>
             </div>
             <span className={styles.demoBadge}>LIVE AVAILABILITY</span>
           </div>
@@ -332,9 +333,7 @@ export default function BookingSchedule({
                     tableId: outlet.tableIds[session.table - 1],
                     start: hourLabel(session.start),
                     end: hourLabel(session.end),
-                    startsAt: new Date(
-                      `${date}T${String(session.start).padStart(2, "0")}:00:00`,
-                    ).toISOString(),
+                    startsAt: operatingHourDate(date, session.start).toISOString(),
                     durationHours: session.end - session.start,
                     hours: session.end - session.start,
                     amount:

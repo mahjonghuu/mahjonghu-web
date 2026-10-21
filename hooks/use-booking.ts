@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import { operatingHourDate } from "@/lib/operating-hours";
 
 type Slot = { table: number; hour: number };
 type BookingSession = { table: number; start: number; end: number };
@@ -21,10 +22,10 @@ export type BookingOutlet = {
 };
 type AvailableTable = { tableId: string };
 
-/** Hour starts shown in the booking grid; each interval lasts one hour. */
+/** Hour starts shown in operating-day order; hours >= 24 are next-day hours. */
 export const bookingHours = (outlet: BookingOutlet) =>
   Array.from(
-    { length: outlet.closingHour - outlet.openingHour },
+    { length: outlet.closingHour + (outlet.closingHour < outlet.openingHour ? 24 : 0) - outlet.openingHour },
     (_, index) => outlet.openingHour + index,
   );
 
@@ -121,9 +122,7 @@ export function useBooking(outlet: BookingOutlet) {
     let current = true;
     Promise.all(
       bookingHours(outlet).map(async (hour) => {
-        const startsAt = new Date(
-          `${date}T${String(hour).padStart(2, "0")}:00:00`,
-        );
+        const startsAt = operatingHourDate(date, hour);
         if (startsAt.getTime() <= Date.now()) return [hour, []] as const;
 
         const query = new URLSearchParams({
