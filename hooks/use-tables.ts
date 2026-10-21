@@ -36,6 +36,8 @@ export function useTables() {
         visibility: outlet.visibility,
         openingHour: Number(outlet.openingHour ?? 12),
         closingHour: Number(outlet.closingHour ?? 22),
+        rate: outlet.rate,
+        rateTiers: outlet.rateTiers,
       })),
     );
     setTables(tableRecords);
@@ -56,6 +58,8 @@ export function useTables() {
             visibility: outlet.visibility,
             openingHour: Number(outlet.openingHour ?? 12),
             closingHour: Number(outlet.closingHour ?? 22),
+            rate: outlet.rate,
+            rateTiers: outlet.rateTiers,
           })),
         );
         setTables(tableRecords);
@@ -101,7 +105,6 @@ export function useTables() {
     const fields = new FormData(event.currentTarget);
     const name = String(fields.get("name") ?? "").trim();
     const outletId = String(fields.get("outletId") ?? "");
-    const rate = Number(fields.get("rate"));
     const status = String(
       fields.get("status") ??
         (editor?.status === "Digunakan" ? "Digunakan" : ""),
@@ -110,14 +113,8 @@ export function useTables() {
       setError("Table name cannot be empty.");
       return;
     }
-    if (
-      !outlets.some((outlet) => outlet.id === outletId) ||
-      !Number.isSafeInteger(rate) ||
-      rate <= 0
-    ) {
-      setError(
-        "Select an outlet and enter a positive whole-number rate in rupiah.",
-      );
+    if (!outlets.some((outlet) => outlet.id === outletId)) {
+      setError("Select an outlet.");
       return;
     }
     if (status === "Digunakan" && editor?.status !== "Digunakan") {
@@ -137,11 +134,9 @@ export function useTables() {
       status === "Tersedia" || status === "Perawatan" ? status : undefined;
     setError("");
     try {
-      const input: {
-        name: string;
-        rate: number;
-        status?: "Tersedia" | "Perawatan";
-      } = { name, rate };
+      const input: { name: string; status?: "Tersedia" | "Perawatan" } = {
+        name,
+      };
       if (editableStatus) input.status = editableStatus;
       if (editor) await tableApi.update(editor.id, input);
       else if (editableStatus)

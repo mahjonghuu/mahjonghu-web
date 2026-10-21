@@ -1,4 +1,5 @@
 import { apiRequest } from "./api";
+export type RateTier = { durationHours: number; rate: number };
 
 /** Outlet fields returned by the backend summary and mutation endpoints. */
 export type OutletApiRecord = {
@@ -12,6 +13,8 @@ export type OutletApiRecord = {
   tableCount?: number;
   openingHour: number;
   closingHour: number;
+  rate: number;
+  rateTiers: RateTier[];
   occupiedTableCount?: number;
 };
 
@@ -24,6 +27,8 @@ export type OutletInput = {
   visibility: "public" | "private";
   openingHour: number;
   closingHour: number;
+  rate: number;
+  rateTiers: RateTier[];
 };
 
 /** Member grant returned by the owner-only outlet access endpoints. */

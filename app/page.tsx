@@ -7,6 +7,8 @@ import BookingSchedule from "./booking-schedule";
 import { formatRupiah as money } from "../lib/currency";
 import { apiRequest, ApiError } from "../lib/api";
 import { customerAuthApi, type Customer } from "../lib/customer-auth";
+import type { RateTier } from "../lib/outlet";
+import type { TableApiRecord } from "../lib/table";
 
 type OutletRecord = {
   id: string;
@@ -15,11 +17,12 @@ type OutletRecord = {
   address: string;
   openingHour: number;
   closingHour: number;
+  rate: number;
+  rateTiers: RateTier[];
 };
-type TableRecord = { id: string; outletId: string; name: string; rate: number };
+type TableRecord = Pick<TableApiRecord, "id" | "outletId" | "name">;
 type Outlet = OutletRecord & {
   tables: TableRecord[];
-  price: number;
 };
 
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
@@ -168,9 +171,6 @@ function BookingPage() {
           return {
             ...record,
             tables: outletTables,
-            price: outletTables.length
-              ? Math.min(...outletTables.map((table) => table.rate))
-              : 0,
           };
         });
         setOutlets(loaded);
@@ -438,8 +438,8 @@ function BookingPage() {
             tables: outlet.tables.length,
             tableIds: outlet.tables.map((table) => table.id),
             tableNames: outlet.tables.map((table) => table.name),
-            tableRates: outlet.tables.map((table) => table.rate),
-            price: outlet.price,
+            rate: outlet.rate,
+            rateTiers: outlet.rateTiers,
             openingHour: outlet.openingHour,
             closingHour: outlet.closingHour,
           }}
@@ -450,8 +450,8 @@ function BookingPage() {
             tables: item.tables.length,
             tableIds: item.tables.map((table) => table.id),
             tableNames: item.tables.map((table) => table.name),
-            tableRates: item.tables.map((table) => table.rate),
-            price: item.price,
+            rate: item.rate,
+            rateTiers: item.rateTiers,
             openingHour: item.openingHour,
             closingHour: item.closingHour,
           }))}
@@ -531,9 +531,9 @@ function BookingPage() {
                 </div>
                 <div className={styles.cardFooter}>
                   <div>
-                    <small>From</small>
+                    <small>1-hour rate / table</small>
                     <strong>
-                      {money(item.price)}
+                      {money(item.rate)}
                       <span> / hour</span>
                     </strong>
                   </div>

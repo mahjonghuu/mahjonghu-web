@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { outletApi, type OutletApiRecord } from "@/lib/outlet";
+import { outletApi, type OutletApiRecord, type RateTier } from "@/lib/outlet";
 import type { Outlet } from "@/app/dashboard/model";
 
 const toOutlet = (outlet: OutletApiRecord): Outlet => ({
@@ -14,6 +14,8 @@ const toOutlet = (outlet: OutletApiRecord): Outlet => ({
   openingHour: Number(outlet.openingHour ?? 12),
   closingHour: Number(outlet.closingHour ?? 22),
   tableCount: Number(outlet.tableCount ?? 0),
+  rate: outlet.rate,
+  rateTiers: outlet.rateTiers,
   occupiedTableCount: Number(outlet.occupiedTableCount ?? 0),
 });
 
@@ -28,6 +30,8 @@ export function useOutlets() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
+  const [tierRows, setTierRows] = useState<{ id: number; durationHours: string; rate: string }[]>([]);
+  const nextTierId = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,12 +61,29 @@ export function useOutlets() {
   function openEditor(outlet?: Outlet) {
     setError("");
     setEditor(outlet ?? null);
+    setTierRows((outlet?.rateTiers ?? []).map((tier) => ({
+      id: nextTierId.current++,
+      durationHours: String(tier.durationHours),
+      rate: String(tier.rate),
+    })));
     dialog.current?.showModal();
   }
 
   function closeEditor() {
     dialog.current?.close();
     setEditor(undefined);
+  }
+
+  function addTier() {
+    setTierRows((rows) => [...rows, { id: nextTierId.current++, durationHours: "", rate: "" }]);
+  }
+
+  function updateTier(id: number, field: "durationHours" | "rate", value: string) {
+    setTierRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value } : row));
+  }
+
+  function removeTier(id: number) {
+    setTierRows((rows) => rows.filter((row) => row.id !== id));
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -76,6 +97,8 @@ export function useOutlets() {
     const closingHour = Number(fields.get("closingHour"));
     const active = fields.get("active") === "true";
     const visibility = String(fields.get("visibility"));
+    const rateText = String(fields.get("rate") ?? "").trim();
+    const rate = Number(rateText);
     if (
       !name ||
       (visibility !== "public" && visibility !== "private") ||
@@ -87,11 +110,35 @@ export function useOutlets() {
       openingHour > 23 ||
       closingHour < 0 ||
       closingHour > 24 ||
-      closingHour === openingHour
+      closingHour === openingHour ||
+      !rateText ||
+      !Number.isSafeInteger(rate) ||
+      rate <= 0 ||
+      rate > 1000000000
     ) {
-      setError("Complete the outlet details and choose different opening and closing times.");
+      setError("Complete the outlet details, choose different opening and closing times, and enter a positive whole-number hourly rate (up to Rp 1,000,000,000).");
       return;
     }
+    const rateTiers: RateTier[] = [];
+    const thresholds = new Set<number>();
+    for (const row of tierRows) {
+      const durationHours = Number(row.durationHours);
+      const tierRate = Number(row.rate);
+      if (!row.durationHours.trim() || !row.rate.trim() ||
+          !Number.isSafeInteger(durationHours) || durationHours < 2 || durationHours > 10 ||
+          !Number.isSafeInteger(tierRate) || tierRate <= 0 || tierRate > 1000000000) {
+        setError("Each tier needs a whole duration from 2 to 10 hours and a positive whole-number hourly rate (up to Rp 1,000,000,000).");
+        return;
+      }
+      if (thresholds.has(durationHours)) {
+        setError("Each duration threshold can only appear once.");
+        return;
+      }
+      thresholds.add(durationHours);
+      rateTiers.push({ durationHours, rate: tierRate });
+    }
+    rateTiers.sort((a, b) => a.durationHours - b.durationHours);
+
     if (
       outlets.some(
         (outlet) =>
@@ -106,7 +153,7 @@ export function useOutlets() {
     setSaving(true);
     setError("");
     try {
-      const input = { name, city, address, active, visibility: visibility as "public" | "private", openingHour, closingHour };
+      const input = { name, city, address, active, visibility: visibility as "public" | "private", openingHour, closingHour, rate, rateTiers };
       if (editor) await outletApi.update(editor.id, input);
       else await outletApi.create(input);
       await refreshOutlets();
@@ -161,6 +208,10 @@ export function useOutlets() {
     openEditor,
     closeEditor,
     save,
+    tierRows,
+    addTier,
+    updateTier,
+    removeTier,
     archive,
     setEditor,
   };

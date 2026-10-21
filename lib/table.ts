@@ -5,7 +5,6 @@ export type TableApiRecord = {
   id: string;
   outletId: string;
   name: string;
-  rate: number;
   status: "Tersedia" | "Digunakan" | "Perawatan";
 };
 
@@ -15,7 +14,6 @@ function isTableApiRecord(value: unknown): value is TableApiRecord {
     !("id" in value) ||
     !("outletId" in value) ||
     !("name" in value) ||
-    !("rate" in value) ||
     !("status" in value)
   )
     return false;
@@ -23,7 +21,6 @@ function isTableApiRecord(value: unknown): value is TableApiRecord {
     typeof value.id === "string" &&
     typeof value.outletId === "string" &&
     typeof value.name === "string" &&
-    typeof value.rate === "number" &&
     (value.status === "Tersedia" ||
       value.status === "Digunakan" ||
       value.status === "Perawatan")
@@ -34,7 +31,6 @@ function isTableApiRecord(value: unknown): value is TableApiRecord {
 export type TableInput = {
   outletId: string;
   name: string;
-  rate: number;
   status: "Tersedia" | "Perawatan";
 };
 
@@ -57,7 +53,7 @@ export const tableApi = {
 
   update(
     id: string,
-    input: { name: string; rate: number; status?: "Tersedia" | "Perawatan" },
+    input: { name: string; status?: "Tersedia" | "Perawatan" },
   ): Promise<TableApiRecord> {
     return apiRequest<TableApiRecord>(`/tables/${encodeURIComponent(id)}`, {
       method: "PATCH",

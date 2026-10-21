@@ -16,6 +16,7 @@ type Session = {
   startsAt: string;
   durationHours: number;
   hours: number;
+  hourlyRate: number;
   amount: number;
 };
 const playDateFormat = new Intl.DateTimeFormat("en-GB", {
@@ -191,8 +192,8 @@ function PaymentDetails() {
                       <div>
                         <strong>{session.table}</strong>
                         <span>
-                          {session.start}–{session.end} · {session.hours} hours ×{" "}
-                          {formatRupiah(session.amount / session.hours)}
+                          {session.start}–{session.end} · {session.durationHours} hours ×{" "}
+                          {formatRupiah(session.hourlyRate)} / hour
                         </span>
                       </div>
                       <strong>{formatRupiah(session.amount)}</strong>
@@ -206,8 +207,10 @@ function PaymentDetails() {
                   <strong>{formatRupiah(total)}</strong>
                 </div>
                 <p className={styles.summaryNote}>
-                  This is not a bill or proof of reservation. Table availability
-                  may change before your booking is confirmed.
+                  This is an estimate, not a bill or proof of reservation. The
+                  final amount is recalculated from current table rates at
+                  checkout and may differ if the owner changes pricing. Table
+                  availability may also change before your booking is confirmed.
                 </p>
               </div>
             </aside>

@@ -35,12 +35,13 @@ export default function BookingSchedule({
     sessions,
     tableCount,
     total,
+    durationValid,
+    durationError,
     validDate,
     today,
     availabilityLoading,
     availabilityError,
     nameOfTable,
-    rateOfTable,
     isSlotAvailable,
     isSlotUnavailable,
     changeDate,
@@ -108,13 +109,14 @@ export default function BookingSchedule({
           Today <span aria-hidden="true">↗</span>
         </button>
         <div className={styles.rate}>
-          <span>STARTING PRICE / TABLE / HOUR</span>
-          <strong>{formatRupiah(outlet.price)}</strong>
+          <span>1-HOUR RATE / TABLE</span>
+          <strong>{formatRupiah(outlet.rate)}</strong>
         </div>
       </div>
       <p className={styles.contextNote}>
         Your selection applies to one venue and operating date. Hours marked next day
         fall on the following calendar date. Changing venue or date clears your selection.
+        One contiguous session per table can last up to 10 hours.
       </p>
       <div className={styles.bookingLayout}>
         <div className={styles.schedulePanel}>
@@ -299,6 +301,11 @@ export default function BookingSchedule({
                   Clear all
                 </button>
               </div>
+              {(!durationValid || durationError) && (
+                <p role="alert" className={styles.durationError}>
+                  {durationError || "A session exceeds the 10-hour limit. Remove it and select up to 10 contiguous hours."}
+                </p>
+              )}
               <ul className={styles.sessionList}>
                 {sessions.map((session) => (
                   <li key={`${session.table}-${session.start}`}>
@@ -309,10 +316,8 @@ export default function BookingSchedule({
                         {session.end - session.start} hours
                       </span>
                       <b>
-                        {formatRupiah(
-                          (session.end - session.start) *
-                            rateOfTable(session.table),
-                        )}
+                        {session.end - session.start} hours × {formatRupiah(session.hourlyRate)} / hour ={" "}
+                        {formatRupiah(session.amount)}
                       </b>
                     </div>
                     <button
@@ -328,8 +333,9 @@ export default function BookingSchedule({
             </>
           )}
           <div className={styles.priceExplanation}>
-            Table rates × {selected.length} table-hours
-            <small>Table-hours = total hours across all selected tables.</small>
+            Each contiguous table session uses the hourly rate at its longest
+            eligible duration threshold.
+            <small>Its entire duration × that rate; separate sessions are priced separately.</small>
           </div>
           <div className={styles.total} aria-live="polite">
             <span>Estimated payment</span>
@@ -338,7 +344,7 @@ export default function BookingSchedule({
           <button
             className={styles.checkout}
             type="button"
-            disabled={!selected.length || !validDate}
+            disabled={!selected.length || !validDate || !durationValid}
             onClick={() => {
               const params = new URLSearchParams({
                 outlet: outlet.name,
@@ -356,9 +362,8 @@ export default function BookingSchedule({
                     startsAt: operatingHourDate(date, session.start).toISOString(),
                     durationHours: session.end - session.start,
                     hours: session.end - session.start,
-                    amount:
-                      (session.end - session.start) *
-                      rateOfTable(session.table),
+                    hourlyRate: session.hourlyRate,
+                    amount: session.amount,
                   })),
                 ),
               });
@@ -369,6 +374,8 @@ export default function BookingSchedule({
           </button>
           <p className={styles.disclaimer}>
             Preview only. No reservation, table hold, or payment has been made.
+            Final pricing is recalculated from current rates at checkout and
+            may differ if the owner changes rates.
           </p>
         </aside>
       </div>

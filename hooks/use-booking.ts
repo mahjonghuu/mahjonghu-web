@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import type { RateTier } from "@/lib/outlet";
 import { operatingHourDate } from "@/lib/operating-hours";
 
 type Slot = { table: number; hour: number };
@@ -15,8 +16,8 @@ export type BookingOutlet = {
   address: string;
   tables: number;
   tableIds: string[];
-  tableRates: number[];
-  price: number;
+  rate: number;
+  rateTiers: RateTier[];
   openingHour: number;
   closingHour: number;
 };
@@ -63,6 +64,7 @@ function sessionsFor(slots: Slot[]): BookingSession[] {
 export function useBooking(outlet: BookingOutlet) {
   const [date, setDate] = useState("");
   const [selected, setSelected] = useState<Slot[]>([]);
+  const [durationError, setDurationError] = useState("");
   const [restored, setRestored] = useState(false);
   useEffect(() => {
     try {
@@ -105,13 +107,23 @@ export function useBooking(outlet: BookingOutlet) {
     currentAvailability?.status === "success"
       ? currentAvailability.byHour
       : null;
-  const sessions = sessionsFor(selected);
+  const rateOfSession = (durationHours: number) => {
+    let rate = outlet.rate;
+    for (const tier of outlet.rateTiers) {
+      if (tier.durationHours > durationHours) break;
+      rate = tier.rate;
+    }
+    return rate;
+  };
+  const sessions = sessionsFor(selected).map((session) => {
+    const durationHours = session.end - session.start;
+    const hourlyRate = rateOfSession(durationHours);
+    return { ...session, hourlyRate, amount: durationHours * hourlyRate };
+  });
   const tableCount = new Set(selected.map((slot) => slot.table)).size;
-  const rateOfTable = (table: number) =>
-    outlet.tableRates[table - 1] ?? outlet.price;
-  const total = selected.reduce(
-    (sum, slot) => sum + rateOfTable(slot.table),
-    0,
+  const total = sessions.reduce((sum, session) => sum + session.amount, 0);
+  const durationValid = sessions.every(
+    (session) => session.end - session.start <= 10,
   );
   const nameOfTable = (table: number) =>
     outlet.tableNames[table - 1] ?? tableLabel(table);
@@ -180,21 +192,38 @@ export function useBooking(outlet: BookingOutlet) {
     setDate(value);
     setSelected([]);
     setPreview(false);
+    setDurationError("");
   }
 
   function toggleSlot(table: number, hour: number) {
     if (!validDate || !isSlotAvailable(table, hour)) return;
+    const alreadySelected = selected.some(
+      (slot) => slot.table === table && slot.hour === hour,
+    );
+    if (
+      !alreadySelected &&
+      sessionsFor([...selected, { table, hour }]).some(
+        (session) => session.end - session.start > 10,
+      )
+    ) {
+      setDurationError(
+        "One contiguous session can be at most 10 hours. Choose another table or a separate time.",
+      );
+      return;
+    }
     setSelected((current) =>
-      current.some((slot) => slot.table === table && slot.hour === hour)
+      alreadySelected
         ? current.filter((slot) => slot.table !== table || slot.hour !== hour)
         : [...current, { table, hour }],
     );
+    setDurationError("");
     setPreview(false);
   }
 
   function clearSelection() {
     setSelected([]);
     setPreview(false);
+    setDurationError("");
   }
 
   function showPreview() {
@@ -214,6 +243,7 @@ export function useBooking(outlet: BookingOutlet) {
       ),
     );
     setPreview(false);
+    setDurationError("");
   }
 
   return {
@@ -224,11 +254,12 @@ export function useBooking(outlet: BookingOutlet) {
     tableCount,
     total,
     validDate,
+    durationValid,
+    durationError,
     today: todayDate,
     availabilityLoading,
     availabilityError,
     nameOfTable,
-    rateOfTable,
     isSlotAvailable,
     isSlotUnavailable,
     changeDate,

@@ -2,7 +2,6 @@
 
 import { Badge, Icon, OutletSelect, PageHeading } from "../components";
 import { useTables } from "../../../hooks/use-tables";
-import { rupiah } from "../model";
 
 /** Manages persistent table records from the backend API. */
 export default function TablePage() {
@@ -93,7 +92,6 @@ export default function TablePage() {
               <tr role="row">
                 <th scope="col">Table name</th>
                 <th scope="col">Outlet</th>
-                <th scope="col">Rate / hour</th>
                 <th scope="col">Status</th>
                 <th scope="col">Actions</th>
               </tr>
@@ -101,7 +99,7 @@ export default function TablePage() {
             <tbody role="rowgroup">
               {loading ? (
                 <tr>
-                  <td colSpan={5}>Loading tables…</td>
+                  <td colSpan={4}>Loading tables…</td>
                 </tr>
               ) : (
                 tableRows.map((table) => (
@@ -118,9 +116,6 @@ export default function TablePage() {
                       {outletName(table.outletId)}
                       {!outlets.find((outlet) => outlet.id === table.outletId)
                         ?.active && <small>Inactive outlet</small>}
-                    </td>
-                    <td role="cell" data-label="Rate / hour" className="money">
-                      {rupiah(table.rate)}
                     </td>
                     <td role="cell" data-label="Status">
                       <Badge
@@ -228,18 +223,6 @@ export default function TablePage() {
                   </p>
                 </>
               )}
-            </label>
-            <label>
-              Hourly rate (Rp)
-              <input
-                name="rate"
-                type="number"
-                required
-                min="1"
-                max="1000000000"
-                step="1"
-                defaultValue={editor?.rate ?? 75000}
-              />
             </label>
             <label>
               Table status

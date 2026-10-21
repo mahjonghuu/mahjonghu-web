@@ -25,6 +25,8 @@ const toOutlet = (outlet: OutletApiRecord) => ({
   visibility: outlet.visibility,
   openingHour: Number(outlet.openingHour),
   closingHour: Number(outlet.closingHour),
+  rate: outlet.rate,
+  rateTiers: outlet.rateTiers,
 });
 
 const bookingTransaction = (booking: BookingRecord) => ({

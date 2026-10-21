@@ -159,6 +159,10 @@ export default function OutletPage() {
     closeEditor,
     save,
     archive,
+    tierRows,
+    addTier,
+    updateTier,
+    removeTier,
     setEditor,
   } = useOutlets();
   const [accessOutletId, setAccessOutletId] = useState<string | null>(null);
@@ -246,6 +250,7 @@ export default function OutletPage() {
               </div>
               <h2>{outlet.name}</h2>
               <p>{outlet.address}</p>
+              <p>Shared hourly rate: {outlet.rate.toLocaleString("id-ID")} IDR (1h)</p>
               <div className="outlet-detail">
                 <span>
                   <Icon index={2} /> {outlet.tableCount ?? 0} tables
@@ -418,6 +423,36 @@ export default function OutletPage() {
                 ))}
               </select>
             </label>
+            <label>
+              Base hourly rate for 1 hour (Rp)
+              <input name="rate" type="number" required min="1" max="1000000000" step="1" defaultValue={editor?.rate ?? 75000} />
+            </label>
+            <div className="rate-tier-editor">
+              <div className="rate-tier-heading">
+                <strong>Duration rate thresholds</strong>
+                <button type="button" className="secondary" onClick={addTier} disabled={tierRows.length >= 9}>
+                  Add threshold
+                </button>
+              </div>
+              <p className="field-help">
+                Optional. At each threshold, this hourly rate applies to the entire contiguous table session until the next threshold. Unlisted durations keep the latest applicable rate. All tables in this outlet share these rates.
+              </p>
+              {tierRows.map((tier) => (
+                <div className="rate-tier-row" key={tier.id}>
+                  <label>
+                    From (hours)
+                    <input type="number" required min="2" max="10" step="1" value={tier.durationHours} onChange={(event) => updateTier(tier.id, "durationHours", event.target.value)} />
+                  </label>
+                  <label>
+                    Hourly rate (Rp)
+                    <input type="number" required min="1" max="1000000000" step="1" value={tier.rate} onChange={(event) => updateTier(tier.id, "rate", event.target.value)} />
+                  </label>
+                  <button type="button" className="secondary" onClick={() => removeTier(tier.id)} aria-label="Remove threshold row">
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
             {error && (
               <p role="alert" className="form-error">
                 {error}

@@ -459,6 +459,14 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.durationError {
+  color: #a25140;
+  background: #fff0eb;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 10px;
+  line-height: 1.5;
+}
 .sessionList {
   list-style: none;
   margin: 0;

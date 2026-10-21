@@ -1,3 +1,5 @@
+import type { RateTier } from "../../lib/outlet";
+
 /** Outlet details are persisted by the local outlet API. */
 export type Outlet = {
   id: string;
@@ -9,6 +11,8 @@ export type Outlet = {
   active: boolean;
   visibility: "public" | "private";
   tableCount?: number;
+  rate: number;
+  rateTiers: RateTier[];
   occupiedTableCount?: number;
 };
 /** Operational table state, independent from historical paid transactions. */
@@ -16,10 +20,9 @@ export type MahjongTable = {
   id: string;
   outletId: string;
   name: string;
-  rate: number;
   status: "Tersedia" | "Digunakan" | "Perawatan";
 };
-/** Paid demo transaction; historical amounts do not change with table pricing. */
+/** Paid demo transaction; historical amounts do not change with outlet pricing. */
 export type Transaction = {
   id: string;
   outletId: string;
@@ -53,6 +56,8 @@ export function initialData(): WorkspaceData {
       openingHour: 12,
       visibility: "public",
       closingHour: 22,
+      rate: 75000,
+      rateTiers: [],
     },
     {
       id: "o2",
@@ -63,6 +68,8 @@ export function initialData(): WorkspaceData {
       openingHour: 12,
       visibility: "public",
       closingHour: 22,
+      rate: 75000,
+      rateTiers: [],
     },
     {
       id: "o3",
@@ -73,6 +80,8 @@ export function initialData(): WorkspaceData {
       openingHour: 12,
       visibility: "public",
       closingHour: 22,
+      rate: 75000,
+      rateTiers: [],
     },
   ];
   const tables: MahjongTable[] = outlets.flatMap((outlet, index) =>
@@ -80,7 +89,6 @@ export function initialData(): WorkspaceData {
       id: `t${index * 4 + i + 1}`,
       outletId: outlet.id,
       name: `Table ${String(i + 1).padStart(2, "0")}`,
-      rate: i === 3 ? 100000 : 75000,
       status:
         i === 0
           ? "Digunakan"
@@ -106,7 +114,7 @@ export function initialData(): WorkspaceData {
         "Sarah Lim",
       ][i % 6],
       hours,
-      amount: table.rate * hours,
+      amount: outlets[i % outlets.length].rate * hours,
     };
   });
   return { outlets, tables, transactions };
