@@ -80,7 +80,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
                     router.refresh();
                   });
               }}
->
+            >
               Log out
             </button>
           </div>
@@ -101,13 +101,11 @@ function DashboardShell({ children }: { children: ReactNode }) {
 /** Provides dashboard navigation and shared workspace state across routes. */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  if (pathname === "/dashboard/login") return children;
+
   return (
     <WorkspaceProvider>
-      {pathname === "/dashboard/login" ? (
-        children
-      ) : (
-        <DashboardShell>{children}</DashboardShell>
-      )}
+      <DashboardShell>{children}</DashboardShell>
     </WorkspaceProvider>
   );
 }
