@@ -653,9 +653,16 @@ function BookingPage() {
             href="https://wa.me/62895413315500?text=Hi%2C%20I%27m%20interested%20in%20building%20a%20website."
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Chat with FlowPOS on WhatsApp at 0895 4133 15500"
+            aria-label="Chat with FlowPOS on WhatsApp"
           >
             Chat with FlowPOS on WhatsApp <Arrow diagonal />
+          </a>
+          <a
+            href="https://wa.me/62895413315500?text=Hi%2C%20I%27m%20interested%20in%20building%20a%20website."
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Chat with FlowPOS on WhatsApp at 0895 4133 15500"
+          >
             <small>0895 4133 15500</small>
           </a>
         </div>
