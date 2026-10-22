@@ -38,6 +38,8 @@ export function useTables() {
         closingHour: Number(outlet.closingHour ?? 22),
         rate: outlet.rate,
         rateTiers: outlet.rateTiers,
+        pricingMode: outlet.pricingMode,
+        happyHour: outlet.happyHour,
       })),
     );
     setTables(tableRecords);
@@ -60,6 +62,8 @@ export function useTables() {
             closingHour: Number(outlet.closingHour ?? 22),
             rate: outlet.rate,
             rateTiers: outlet.rateTiers,
+            pricingMode: outlet.pricingMode,
+            happyHour: outlet.happyHour,
           })),
         );
         setTables(tableRecords);

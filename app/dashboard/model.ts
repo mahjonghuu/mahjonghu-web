@@ -1,4 +1,4 @@
-import type { RateTier } from "../../lib/outlet";
+import type { HappyHour, PricingMode, RateTier } from "../../lib/outlet";
 
 /** Outlet details are persisted by the local outlet API. */
 export type Outlet = {
@@ -13,6 +13,8 @@ export type Outlet = {
   tableCount?: number;
   rate: number;
   rateTiers: RateTier[];
+  pricingMode: PricingMode;
+  happyHour: HappyHour | null;
   occupiedTableCount?: number;
 };
 /** Operational table state, independent from historical paid transactions. */
@@ -58,6 +60,8 @@ export function initialData(): WorkspaceData {
       closingHour: 22,
       rate: 75000,
       rateTiers: [],
+      pricingMode: "duration",
+      happyHour: null,
     },
     {
       id: "o2",
@@ -70,6 +74,8 @@ export function initialData(): WorkspaceData {
       closingHour: 22,
       rate: 75000,
       rateTiers: [],
+      pricingMode: "duration",
+      happyHour: null,
     },
     {
       id: "o3",
@@ -82,6 +88,8 @@ export function initialData(): WorkspaceData {
       closingHour: 22,
       rate: 75000,
       rateTiers: [],
+      pricingMode: "duration",
+      happyHour: null,
     },
   ];
   const tables: MahjongTable[] = outlets.flatMap((outlet, index) =>

@@ -27,6 +27,8 @@ const toOutlet = (outlet: OutletApiRecord) => ({
   closingHour: Number(outlet.closingHour),
   rate: outlet.rate,
   rateTiers: outlet.rateTiers,
+  pricingMode: outlet.pricingMode ?? "duration",
+  happyHour: outlet.happyHour ?? null,
 });
 
 const bookingTransaction = (booking: BookingRecord) => ({

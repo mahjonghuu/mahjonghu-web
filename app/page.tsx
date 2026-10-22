@@ -7,7 +7,7 @@ import BookingSchedule from "./booking-schedule";
 import { formatRupiah as money } from "../lib/currency";
 import { apiRequest, ApiError } from "../lib/api";
 import { customerAuthApi, type Customer } from "../lib/customer-auth";
-import type { RateTier } from "../lib/outlet";
+import type { HappyHour, PricingMode, RateTier } from "../lib/outlet";
 import type { TableApiRecord } from "../lib/table";
 
 type OutletRecord = {
@@ -19,6 +19,8 @@ type OutletRecord = {
   closingHour: number;
   rate: number;
   rateTiers: RateTier[];
+  pricingMode: PricingMode;
+  happyHour: HappyHour | null;
 };
 type TableRecord = Pick<TableApiRecord, "id" | "outletId" | "name">;
 type Outlet = OutletRecord & {
@@ -440,6 +442,8 @@ function BookingPage() {
             tableNames: outlet.tables.map((table) => table.name),
             rate: outlet.rate,
             rateTiers: outlet.rateTiers,
+            pricingMode: outlet.pricingMode ?? "duration",
+            happyHour: outlet.happyHour ?? null,
             openingHour: outlet.openingHour,
             closingHour: outlet.closingHour,
           }}
@@ -452,6 +456,8 @@ function BookingPage() {
             tableNames: item.tables.map((table) => table.name),
             rate: item.rate,
             rateTiers: item.rateTiers,
+            pricingMode: item.pricingMode ?? "duration",
+            happyHour: item.happyHour ?? null,
             openingHour: item.openingHour,
             closingHour: item.closingHour,
           }))}
@@ -531,7 +537,7 @@ function BookingPage() {
                 </div>
                 <div className={styles.cardFooter}>
                   <div>
-                    <small>1-hour rate / table</small>
+                    <small>Base rate / table-hour</small>
                     <strong>
                       {money(item.rate)}
                       <span> / hour</span>

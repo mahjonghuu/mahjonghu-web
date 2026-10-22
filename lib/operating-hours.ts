@@ -3,10 +3,9 @@ export function operatingHourLabel(hour: number) {
   return `${String(hour % 24).padStart(2, "0")}:00${hour >= 24 ? " (next day)" : ""}`;
 }
 
-/** Converts an operating-day hour to a local timestamp on its calendar day. */
+/** Converts an operating date/hour in the outlet's Jakarta timezone to an instant. */
 export function operatingHourDate(date: string, hour: number) {
-  const start = new Date(`${date}T00:00:00`);
-  start.setDate(start.getDate() + Math.floor(hour / 24));
-  start.setHours(hour % 24);
+  const start = new Date(`${date}T00:00:00+07:00`);
+  start.setTime(start.getTime() + hour * 60 * 60 * 1000);
   return start;
 }

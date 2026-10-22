@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { outletApi, type OutletApiRecord, type RateTier } from "@/lib/outlet";
+import { outletApi, type HappyHour, type OutletApiRecord, type PricingMode, type RateTier } from "@/lib/outlet";
 import type { Outlet } from "@/app/dashboard/model";
 
 const toOutlet = (outlet: OutletApiRecord): Outlet => ({
@@ -16,6 +16,8 @@ const toOutlet = (outlet: OutletApiRecord): Outlet => ({
   tableCount: Number(outlet.tableCount ?? 0),
   rate: outlet.rate,
   rateTiers: outlet.rateTiers,
+  pricingMode: outlet.pricingMode ?? "duration",
+  happyHour: outlet.happyHour ?? null,
   occupiedTableCount: Number(outlet.occupiedTableCount ?? 0),
 });
 
@@ -32,6 +34,11 @@ export function useOutlets() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [tierRows, setTierRows] = useState<{ id: number; durationHours: string; rate: string }[]>([]);
   const nextTierId = useRef(0);
+  const [pricingMode, setPricingMode] = useState<PricingMode>("duration");
+  const [happyDays, setHappyDays] = useState<number[]>([]);
+  const [happyStart, setHappyStart] = useState("");
+  const [happyEnd, setHappyEnd] = useState("");
+  const [happyRate, setHappyRate] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +68,11 @@ export function useOutlets() {
   function openEditor(outlet?: Outlet) {
     setError("");
     setEditor(outlet ?? null);
+    setPricingMode(outlet?.pricingMode ?? "duration");
+    setHappyDays(outlet?.happyHour?.days ?? []);
+    setHappyStart(outlet?.happyHour ? String(outlet.happyHour.startHour) : "");
+    setHappyEnd(outlet?.happyHour ? String(outlet.happyHour.endHour) : "");
+    setHappyRate(outlet?.happyHour ? String(outlet.happyHour.rate) : "");
     setTierRows((outlet?.rateTiers ?? []).map((tier) => ({
       id: nextTierId.current++,
       durationHours: String(tier.durationHours),
@@ -72,6 +84,22 @@ export function useOutlets() {
   function closeEditor() {
     dialog.current?.close();
     setEditor(undefined);
+  }
+
+  function changePricingMode(mode: PricingMode) {
+    setPricingMode(mode);
+    if (mode === "duration") {
+      setHappyDays([]);
+      setHappyStart("");
+      setHappyEnd("");
+      setHappyRate("");
+    } else {
+      setTierRows([]);
+    }
+  }
+
+  function toggleHappyDay(day: number) {
+    setHappyDays((days) => days.includes(day) ? days.filter((item) => item !== day) : [...days, day].sort((a, b) => a - b));
   }
 
   function addTier() {
@@ -119,25 +147,41 @@ export function useOutlets() {
       setError("Complete the outlet details, choose different opening and closing times, and enter a positive whole-number hourly rate (up to Rp 1,000,000,000).");
       return;
     }
-    const rateTiers: RateTier[] = [];
-    const thresholds = new Set<number>();
-    for (const row of tierRows) {
-      const durationHours = Number(row.durationHours);
-      const tierRate = Number(row.rate);
-      if (!row.durationHours.trim() || !row.rate.trim() ||
-          !Number.isSafeInteger(durationHours) || durationHours < 2 || durationHours > 10 ||
-          !Number.isSafeInteger(tierRate) || tierRate <= 0 || tierRate > 1000000000) {
-        setError("Each tier needs a whole duration from 2 to 10 hours and a positive whole-number hourly rate (up to Rp 1,000,000,000).");
+    let happyHour: HappyHour | null = null;
+    if (pricingMode === "happy_hour") {
+      const startHour = Number(happyStart);
+      const endHour = Number(happyEnd);
+      const happyHourlyRate = Number(happyRate);
+      if (!happyDays.length || !happyStart.trim() || !happyEnd.trim() || !happyRate.trim() ||
+          !Number.isInteger(startHour) || startHour < 0 || startHour > 23 ||
+          !Number.isInteger(endHour) || endHour <= startHour || endHour > 24 ||
+          !Number.isSafeInteger(happyHourlyRate) || happyHourlyRate <= 0 || happyHourlyRate > 1000000000) {
+        setError("Choose at least one happy hour weekday, a valid start/end window, and a positive whole-number hourly rate (up to Rp 1,000,000,000).");
         return;
       }
-      if (thresholds.has(durationHours)) {
-        setError("Each duration threshold can only appear once.");
-        return;
-      }
-      thresholds.add(durationHours);
-      rateTiers.push({ durationHours, rate: tierRate });
+      happyHour = { days: happyDays, startHour, endHour, rate: happyHourlyRate };
     }
-    rateTiers.sort((a, b) => a.durationHours - b.durationHours);
+    const rateTiers: RateTier[] = [];
+    if (pricingMode === "duration") {
+      const thresholds = new Set<number>();
+      for (const row of tierRows) {
+        const durationHours = Number(row.durationHours);
+        const tierRate = Number(row.rate);
+        if (!row.durationHours.trim() || !row.rate.trim() ||
+            !Number.isSafeInteger(durationHours) || durationHours < 2 || durationHours > 10 ||
+            !Number.isSafeInteger(tierRate) || tierRate <= 0 || tierRate > 1000000000) {
+          setError("Each tier needs a whole duration from 2 to 10 hours and a positive whole-number hourly rate (up to Rp 1,000,000,000).");
+          return;
+        }
+        if (thresholds.has(durationHours)) {
+          setError("Each duration threshold can only appear once.");
+          return;
+        }
+        thresholds.add(durationHours);
+        rateTiers.push({ durationHours, rate: tierRate });
+      }
+      rateTiers.sort((a, b) => a.durationHours - b.durationHours);
+    }
 
     if (
       outlets.some(
@@ -153,7 +197,7 @@ export function useOutlets() {
     setSaving(true);
     setError("");
     try {
-      const input = { name, city, address, active, visibility: visibility as "public" | "private", openingHour, closingHour, rate, rateTiers };
+      const input = { name, city, address, active, visibility: visibility as "public" | "private", openingHour, closingHour, rate, pricingMode, happyHour, rateTiers };
       if (editor) await outletApi.update(editor.id, input);
       else await outletApi.create(input);
       await refreshOutlets();
@@ -209,6 +253,16 @@ export function useOutlets() {
     closeEditor,
     save,
     tierRows,
+    pricingMode,
+    changePricingMode,
+    happyDays,
+    toggleHappyDay,
+    happyStart,
+    setHappyStart,
+    happyEnd,
+    setHappyEnd,
+    happyRate,
+    setHappyRate,
     addTier,
     updateTier,
     removeTier,

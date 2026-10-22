@@ -164,6 +164,16 @@ export default function OutletPage() {
     updateTier,
     removeTier,
     setEditor,
+    pricingMode,
+    changePricingMode,
+    happyDays,
+    toggleHappyDay,
+    happyStart,
+    setHappyStart,
+    happyEnd,
+    setHappyEnd,
+    happyRate,
+    setHappyRate,
   } = useOutlets();
   const [accessOutletId, setAccessOutletId] = useState<string | null>(null);
   const accessDialog = useRef<HTMLDialogElement>(null);
@@ -427,32 +437,75 @@ export default function OutletPage() {
               Base hourly rate for 1 hour (Rp)
               <input name="rate" type="number" required min="1" max="1000000000" step="1" defaultValue={editor?.rate ?? 75000} />
             </label>
-            <div className="rate-tier-editor">
-              <div className="rate-tier-heading">
-                <strong>Duration rate thresholds</strong>
-                <button type="button" className="secondary" onClick={addTier} disabled={tierRows.length >= 9}>
-                  Add threshold
-                </button>
-              </div>
-              <p className="field-help">
-                Optional. At each threshold, this hourly rate applies to the entire contiguous table session until the next threshold. Unlisted durations keep the latest applicable rate. All tables in this outlet share these rates.
-              </p>
-              {tierRows.map((tier) => (
-                <div className="rate-tier-row" key={tier.id}>
-                  <label>
-                    From (hours)
-                    <input type="number" required min="2" max="10" step="1" value={tier.durationHours} onChange={(event) => updateTier(tier.id, "durationHours", event.target.value)} />
-                  </label>
-                  <label>
-                    Hourly rate (Rp)
-                    <input type="number" required min="1" max="1000000000" step="1" value={tier.rate} onChange={(event) => updateTier(tier.id, "rate", event.target.value)} />
-                  </label>
-                  <button type="button" className="secondary" onClick={() => removeTier(tier.id)} aria-label="Remove threshold row">
-                    Remove
+            <label>
+              Pricing mode
+              <select value={pricingMode} onChange={(event) => changePricingMode(event.target.value as "duration" | "happy_hour")}>
+                <option value="duration">Duration thresholds</option>
+                <option value="happy_hour">Happy hour by day and time</option>
+              </select>
+            </label>
+            {pricingMode === "duration" ? (
+              <div className="rate-tier-editor">
+                <div className="rate-tier-heading">
+                  <strong>Duration rate thresholds</strong>
+                  <button type="button" className="secondary" onClick={addTier} disabled={tierRows.length >= 9}>
+                    Add threshold
                   </button>
                 </div>
-              ))}
-            </div>
+                <p className="field-help">
+                  Optional. At each threshold, this hourly rate applies to the entire contiguous table session until the next threshold. Unlisted durations keep the latest applicable rate. All tables in this outlet share these rates.
+                </p>
+                {tierRows.map((tier) => (
+                  <div className="rate-tier-row" key={tier.id}>
+                    <label>
+                      From (hours)
+                      <input type="number" required min="2" max="10" step="1" value={tier.durationHours} onChange={(event) => updateTier(tier.id, "durationHours", event.target.value)} />
+                    </label>
+                    <label>
+                      Hourly rate (Rp)
+                      <input type="number" required min="1" max="1000000000" step="1" value={tier.rate} onChange={(event) => updateTier(tier.id, "rate", event.target.value)} />
+                    </label>
+                    <button type="button" className="secondary" onClick={() => removeTier(tier.id)} aria-label="Remove threshold row">
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rate-tier-editor">
+                <strong>Happy hour</strong>
+                <p className="field-help">Select the calendar weekdays and hours that use the happy hour rate. Slots outside this window use the base rate. The next day uses its own weekday, even when a session crosses midnight.</p>
+                <fieldset className="happy-days">
+                  <legend>Days (at least one)</legend>
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, index) => (
+                    <label key={label}>
+                      <input type="checkbox" checked={happyDays.includes(index + 1)} onChange={() => toggleHappyDay(index + 1)} />
+                      {label}
+                    </label>
+                  ))}
+                </fieldset>
+                <div className="rate-tier-row">
+                  <label>
+                    Start hour
+                    <select required value={happyStart} onChange={(event) => setHappyStart(event.target.value)}>
+                      <option value="">Choose hour</option>
+                      {Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    End hour
+                    <select required value={happyEnd} onChange={(event) => setHappyEnd(event.target.value)}>
+                      <option value="">Choose hour</option>
+                      {Array.from({ length: 24 }, (_, index) => index + 1).map((hour) => <option key={hour} value={hour}>{String(hour % 24).padStart(2, "0")}:00{hour === 24 ? " (end of day)" : ""}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Happy hour rate per hour (Rp)
+                  <input type="number" required min="1" max="1000000000" step="1" value={happyRate} onChange={(event) => setHappyRate(event.target.value)} />
+                </label>
+              </div>
+            )}
             {error && (
               <p role="alert" className="form-error">
                 {error}

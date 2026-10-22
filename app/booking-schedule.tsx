@@ -109,7 +109,7 @@ export default function BookingSchedule({
           Today <span aria-hidden="true">↗</span>
         </button>
         <div className={styles.rate}>
-          <span>1-HOUR RATE / TABLE</span>
+          <span>BASE RATE / TABLE-HOUR</span>
           <strong>{formatRupiah(outlet.rate)}</strong>
         </div>
       </div>
@@ -316,8 +316,11 @@ export default function BookingSchedule({
                         {session.end - session.start} hours
                       </span>
                       <b>
-                        {session.end - session.start} hours × {formatRupiah(session.hourlyRate)} / hour ={" "}
-                        {formatRupiah(session.amount)}
+                        {session.pricedHours
+                          ? <>{session.pricedHours.map((slot) => (
+                              <span key={slot.hour}>{hourLabel(slot.hour)}–{hourLabel(slot.hour + 1)}: {formatRupiah(slot.rate)}</span>
+                            ))}Session estimate: {formatRupiah(session.amount)}</>
+                          : <>{session.end - session.start} hours × {formatRupiah(session.hourlyRate)} / hour = {formatRupiah(session.amount)}</>}
                       </b>
                     </div>
                     <button
@@ -333,9 +336,17 @@ export default function BookingSchedule({
             </>
           )}
           <div className={styles.priceExplanation}>
-            Each contiguous table session uses the hourly rate at its longest
-            eligible duration threshold.
-            <small>Its entire duration × that rate; separate sessions are priced separately.</small>
+            {outlet.pricingMode === "happy_hour" && outlet.happyHour ? (
+              <>
+                Happy hour applies per one-hour slot on {outlet.happyHour.days.map((day) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day - 1]).join(", ")}, from {String(outlet.happyHour.startHour).padStart(2, "0")}:00 to {String(outlet.happyHour.endHour % 24).padStart(2, "0")}:00. Each slot outside those calendar weekdays and hours uses the base rate.
+                <small>After midnight, the next calendar day&apos;s weekday applies. The estimate sums each slot and each table session.</small>
+              </>
+            ) : (
+              <>
+                Each contiguous table session uses the hourly rate at its longest eligible duration threshold.
+                <small>Its entire duration × that rate; separate sessions are priced separately.</small>
+              </>
+            )}
           </div>
           <div className={styles.total} aria-live="polite">
             <span>Estimated payment</span>
@@ -363,6 +374,11 @@ export default function BookingSchedule({
                     durationHours: session.end - session.start,
                     hours: session.end - session.start,
                     hourlyRate: session.hourlyRate,
+                    pricedHours: session.pricedHours?.map((slot) => ({
+                      start: hourLabel(slot.hour),
+                      end: hourLabel(slot.hour + 1),
+                      rate: slot.rate,
+                    })) ?? null,
                     amount: session.amount,
                   })),
                 ),

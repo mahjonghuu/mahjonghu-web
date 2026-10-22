@@ -1,5 +1,7 @@
 import { apiRequest } from "./api";
 export type RateTier = { durationHours: number; rate: number };
+export type PricingMode = "duration" | "happy_hour";
+export type HappyHour = { days: number[]; startHour: number; endHour: number; rate: number };
 
 /** Outlet fields returned by the backend summary and mutation endpoints. */
 export type OutletApiRecord = {
@@ -15,6 +17,8 @@ export type OutletApiRecord = {
   closingHour: number;
   rate: number;
   rateTiers: RateTier[];
+  pricingMode: PricingMode;
+  happyHour: HappyHour | null;
   occupiedTableCount?: number;
 };
 
@@ -29,6 +33,8 @@ export type OutletInput = {
   closingHour: number;
   rate: number;
   rateTiers: RateTier[];
+  pricingMode: PricingMode;
+  happyHour: HappyHour | null;
 };
 
 /** Member grant returned by the owner-only outlet access endpoints. */

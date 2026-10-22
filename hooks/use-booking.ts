@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
-import type { RateTier } from "@/lib/outlet";
+import type { HappyHour, PricingMode, RateTier } from "@/lib/outlet";
 import { operatingHourDate } from "@/lib/operating-hours";
 
 type Slot = { table: number; hour: number };
@@ -18,6 +18,8 @@ export type BookingOutlet = {
   tableIds: string[];
   rate: number;
   rateTiers: RateTier[];
+  pricingMode: PricingMode;
+  happyHour: HappyHour | null;
   openingHour: number;
   closingHour: number;
 };
@@ -30,9 +32,17 @@ export const bookingHours = (outlet: BookingOutlet) =>
     (_, index) => outlet.openingHour + index,
   );
 
+/** ISO weekday for a slot on the selected outlet operating date, independent of browser timezone. */
+function slotWeekday(date: string, hour: number) {
+  const day = new Date(`${date}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + Math.floor(hour / 24));
+  return day.getUTCDay() || 7;
+}
+
+/** Current calendar date in the outlet's Jakarta timezone. */
 function today() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const jakartaTime = Date.now() + 7 * 60 * 60 * 1000;
+  return new Date(jakartaTime).toISOString().slice(0, 10);
 }
 
 function tableLabel(table: number) {
@@ -67,18 +77,21 @@ export function useBooking(outlet: BookingOutlet) {
   const [durationError, setDurationError] = useState("");
   const [restored, setRestored] = useState(false);
   useEffect(() => {
-    try {
-      const stored = JSON.parse(
-        sessionStorage.getItem(BOOKING_STATE_KEY) ?? "null",
-      ) as StoredBooking | null;
-      if (stored?.outletId === outlet.id) {
-        setDate(stored.date);
-        setSelected(stored.selected);
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = JSON.parse(
+          sessionStorage.getItem(BOOKING_STATE_KEY) ?? "null",
+        ) as StoredBooking | null;
+        if (stored?.outletId === outlet.id) {
+          setDate(stored.date);
+          setSelected(stored.selected);
+        }
+      } catch {
+        sessionStorage.removeItem(BOOKING_STATE_KEY);
       }
-    } catch {
-      sessionStorage.removeItem(BOOKING_STATE_KEY);
-    }
-    setRestored(true);
+      setRestored(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [outlet.id]);
 
   useEffect(() => {
@@ -117,8 +130,25 @@ export function useBooking(outlet: BookingOutlet) {
   };
   const sessions = sessionsFor(selected).map((session) => {
     const durationHours = session.end - session.start;
+    if (outlet.pricingMode === "happy_hour" && outlet.happyHour) {
+      const { days, startHour, endHour, rate } = outlet.happyHour;
+      const pricedHours = Array.from({ length: durationHours }, (_, index) => {
+        const hour = session.start + index;
+        const localHour = hour % 24;
+        return {
+          hour,
+          rate: days.includes(slotWeekday(date, hour)) && localHour >= startHour && localHour < endHour ? rate : outlet.rate,
+        };
+      });
+      return {
+        ...session,
+        hourlyRate: null,
+        pricedHours,
+        amount: pricedHours.reduce((sum, slot) => sum + slot.rate, 0),
+      };
+    }
     const hourlyRate = rateOfSession(durationHours);
-    return { ...session, hourlyRate, amount: durationHours * hourlyRate };
+    return { ...session, hourlyRate, pricedHours: null, amount: durationHours * hourlyRate };
   });
   const tableCount = new Set(selected.map((slot) => slot.table)).size;
   const total = sessions.reduce((sum, session) => sum + session.amount, 0);

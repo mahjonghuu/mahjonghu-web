@@ -16,9 +16,14 @@ type Session = {
   startsAt: string;
   durationHours: number;
   hours: number;
-  hourlyRate: number;
   amount: number;
-};
+} & ({
+  hourlyRate: number;
+  pricedHours?: null;
+} | {
+  hourlyRate: null;
+  pricedHours: { start: string; end: string; rate: number }[];
+});
 const playDateFormat = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeZone: "Asia/Jakarta",
@@ -192,8 +197,12 @@ function PaymentDetails() {
                       <div>
                         <strong>{session.table}</strong>
                         <span>
-                          {session.start}–{session.end} · {session.durationHours} hours ×{" "}
-                          {formatRupiah(session.hourlyRate)} / hour
+                          {session.start}–{session.end} · {session.durationHours} hours
+                          {session.pricedHours
+                            ? session.pricedHours.map((slot, slotIndex) => (
+                                <span key={slotIndex}>{slot.start}–{slot.end}: {formatRupiah(slot.rate)}</span>
+                              ))
+                            : <> × {formatRupiah(session.hourlyRate)} / hour</>}
                         </span>
                       </div>
                       <strong>{formatRupiah(session.amount)}</strong>
