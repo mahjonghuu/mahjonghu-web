@@ -11,6 +11,8 @@ npm run dev
 
 Open http://localhost:3000 for the public entry page. Dashboard routes under `/dashboard` require an owner account created by a trusted backend administrator; sign in at `/dashboard/login`.
 
+The public footer's website inquiry link identifies FlowPOS and opens a prefilled WhatsApp conversation.
+
 Private outlets appear on the public booking page only after a granted
 customer signs in using the emailed one-time code. The owner dashboard's
 outlet editor controls visibility; the separate "Manage access" dialog handles
