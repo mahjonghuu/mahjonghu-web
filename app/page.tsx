@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import styles from "./page.module.css";
 import BookingSchedule from "./booking-schedule";
+import AdvertisementPopup from "./advertisement-popup";
 import { formatRupiah as money } from "../lib/currency";
 import { apiRequest } from "../lib/api";
 import type { HappyHour, PricingMode, RateTier } from "../lib/outlet";
@@ -103,6 +104,7 @@ function BookingPage() {
   }
   return (
     <main className={styles.page}>
+      <AdvertisementPopup />
       <div className={styles.announcement}>
         A little strategy. A lot of good company. <span>Let’s play.</span>{" "}
         <span aria-hidden="true">✳</span>

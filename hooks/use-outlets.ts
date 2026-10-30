@@ -9,7 +9,7 @@ import {
   type RateTier,
 } from "@/lib/outlet";
 import type { Outlet } from "@/app/dashboard/model";
-import { prepareOutletPhoto } from "@/lib/outlet-photo";
+import { prepareImageUpload } from "@/lib/image-upload";
 
 const toOutlet = (outlet: OutletApiRecord): Outlet => ({
   id: String(outlet.id),
@@ -72,7 +72,7 @@ export function useOutlets() {
     }
     setProcessingPhoto(true);
     try {
-      const prepared = await prepareOutletPhoto(file);
+      const prepared = await prepareImageUpload(file);
       if (request === photoRequest.current) {
         setPhoto(prepared);
         setPhotoChanged(true);

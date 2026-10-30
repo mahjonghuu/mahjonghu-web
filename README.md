@@ -50,15 +50,27 @@ npm run build
 - Booking selections are kept in session storage when returning to the booking page. DOKU success can restore an expired hold only if payment occurred within the 15-minute deadline and the slot has not been rebooked; late or conflicting payments are flagged for manual review.
 - For customer cancellation requests after payment, set `NEXT_PUBLIC_OWNER_WHATSAPP` to the owner's WhatsApp number in international format (for example `6281234567890`, without a `+`) before building/deploying the web app. The payment result page then offers a prefilled WhatsApp message with booking references for confirmed future reservations. Without a configured valid number, no WhatsApp link is shown. Customers do not cancel bookings directly in the public area.
 
+## Scheduled advertisements
+
+Owners can open **Dashboard → Advertisements** to create, edit, or permanently delete homepage announcements. Enter a title (up to 80 characters), choose the start and end dates, and upload a required JPEG, PNG, or WebP image up to 10 MiB. The browser resizes it to at most 1600px and compresses it to at most 512 KiB before saving. Previews and public posters show the full image without cropping; Storage images load directly without Next.js image optimization.
+
+Both schedule dates are **inclusive in Asia/Jakarta (UTC+7)**, and a same-day schedule is valid. The backend computes each record's **Scheduled**, **Active**, or **Expired** status using its current Jakarta date; the dashboard displays that server status. Use **Refresh list** to retrieve current statuses. Editing an advertisement keeps its saved image unless a replacement is selected. Cancelling discards unsaved title, schedule, and image changes; choosing an image alone does not upload or alter the saved advertisement.
+
+Only active advertisements appear in the public homepage popup, with no login required. When several are active, visitors can use previous/next controls and a slide count; posters do not rotate automatically. Closing the popup or pressing Escape dismisses it for the current page visit, including venue and filter changes. Reloading or returning on a new visit may show it again. Advertisements do not appear during checkout or in the owner workspace, and unavailable or empty advertisement responses do not block booking.
+
+The backend needs a **separate public Supabase Storage bucket** for advertisements. Set backend-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, and set `SUPABASE_ADVERTISEMENT_IMAGES_BUCKET` to its bucket name (default `advertisement-images`). Configure that bucket for JPEG, PNG, and WebP objects up to 524288 bytes; uploads and deletions go through authenticated backend endpoints, not browser Storage credentials. Keep the existing outlet bucket separate. Never put the service-role key in a `NEXT_PUBLIC_*` variable or expose it to the browser. See the backend README for Storage setup and database migrations.
+
+The owner UI uses authenticated `GET`, `POST`, `PATCH`, and `DELETE /advertisements` endpoints; the homepage uses uncached `GET /advertisements/public`. New and replacement image fields contain compressed data URLs, never existing Storage URLs.
+
 ## Dashboard PoC plan and implementation
 
-1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, bookings, outlets, tables, and revenue reports.
+1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, bookings, outlets, advertisements, tables, and revenue reports.
 2. Manage outlets with names, cities, addresses, and operational status through the PostgreSQL-backed outlet API.
 3. Display persisted booking records in the owner dashboard; dashboard overview and revenue report aggregates come from backend APIs. Table management remains demo data.
 4. Persisted dashboard and revenue-report views are implemented; table-management data remains client-side demo data.
 5. Verify API flows while preserving clear demo-only boundaries for unconnected modules.
 
-Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/table`, and `/dashboard/revenue`. The overview requests backend-computed metrics from `GET /dashboard/summary`; outlet management and booking records also load from backend APIs.
+Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/advertisements`, `/dashboard/table`, and `/dashboard/revenue`. The overview requests backend-computed metrics from `GET /dashboard/summary`; outlet management, scheduled advertisements, and booking records also load from backend APIs.
 
 ### Responsive workspace
 

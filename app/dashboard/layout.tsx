@@ -13,6 +13,7 @@ const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: 0 },
   { label: "Bookings", href: "/dashboard/booking", icon: 4 },
   { label: "Outlets", href: "/dashboard/outlet", icon: 1 },
+  { label: "Advertisements", href: "/dashboard/advertisements", icon: 2 },
   { label: "Tables", href: "/dashboard/table", icon: 2 },
   { label: "Revenue reports", href: "/dashboard/revenue", icon: 3 },
 ];
