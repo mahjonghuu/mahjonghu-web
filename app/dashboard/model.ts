@@ -6,6 +6,7 @@ export type Outlet = {
   name: string;
   city: string;
   address: string;
+  photo?: string | null;
   openingHour: number;
   closingHour: number;
   active: boolean;

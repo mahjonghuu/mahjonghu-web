@@ -14,6 +14,7 @@ type OutletRecord = {
   name: string;
   city: string;
   address: string;
+  photo: string | null;
   openingHour: number;
   closingHour: number;
   rate: number;
@@ -309,8 +310,9 @@ function BookingPage() {
             <article className={styles.outletCard} key={item.id}>
               <div className={styles.outletImage}>
                 <Image
-                  src="/mahjong-illustration.svg"
-                  alt=""
+                  src={item.photo ?? "/mahjong-illustration.svg"}
+                  alt={item.photo ? `Photo of ${item.name}` : ""}
+                  unoptimized={Boolean(item.photo)}
                   fill
                   sizes="(max-width: 650px) 100vw, (max-width: 1000px) 50vw, 33vw"
                 />

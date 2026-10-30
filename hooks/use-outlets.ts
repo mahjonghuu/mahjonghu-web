@@ -1,14 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { outletApi, type HappyHour, type OutletApiRecord, type PricingMode, type RateTier } from "@/lib/outlet";
+import {
+  outletApi,
+  type HappyHour,
+  type OutletApiRecord,
+  type PricingMode,
+  type RateTier,
+} from "@/lib/outlet";
 import type { Outlet } from "@/app/dashboard/model";
+import { prepareOutletPhoto } from "@/lib/outlet-photo";
 
 const toOutlet = (outlet: OutletApiRecord): Outlet => ({
   id: String(outlet.id),
   name: outlet.name,
   city: outlet.city,
   address: outlet.address,
+  photo: outlet.photo ?? null,
   active: Boolean(outlet.active ?? outlet.isActive),
   visibility: outlet.visibility,
   openingHour: Number(outlet.openingHour ?? 12),
@@ -32,13 +40,52 @@ export function useOutlets() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
-  const [tierRows, setTierRows] = useState<{ id: number; durationHours: string; rate: string }[]>([]);
+  const [tierRows, setTierRows] = useState<
+    { id: number; durationHours: string; rate: string }[]
+  >([]);
   const nextTierId = useRef(0);
   const [pricingMode, setPricingMode] = useState<PricingMode>("duration");
   const [happyDays, setHappyDays] = useState<number[]>([]);
   const [happyStart, setHappyStart] = useState("");
   const [happyEnd, setHappyEnd] = useState("");
   const [happyRate, setHappyRate] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoChanged, setPhotoChanged] = useState(false);
+  const [processingPhoto, setProcessingPhoto] = useState(false);
+  const photoRequest = useRef(0);
+
+  useEffect(
+    () => () => {
+      photoRequest.current++;
+    },
+    [],
+  );
+
+  async function changePhoto(file: File | null) {
+    const request = ++photoRequest.current;
+    setError("");
+    if (!file) {
+      setPhoto(null);
+      setPhotoChanged(true);
+      setProcessingPhoto(false);
+      return;
+    }
+    setProcessingPhoto(true);
+    try {
+      const prepared = await prepareOutletPhoto(file);
+      if (request === photoRequest.current) {
+        setPhoto(prepared);
+        setPhotoChanged(true);
+      }
+    } catch (cause) {
+      if (request === photoRequest.current)
+        setError(
+          cause instanceof Error ? cause.message : "Could not process photo.",
+        );
+    } finally {
+      if (request === photoRequest.current) setProcessingPhoto(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -67,21 +114,29 @@ export function useOutlets() {
 
   function openEditor(outlet?: Outlet) {
     setError("");
+    photoRequest.current++;
+    setProcessingPhoto(false);
+    setPhoto(outlet?.photo ?? null);
+    setPhotoChanged(false);
     setEditor(outlet ?? null);
     setPricingMode(outlet?.pricingMode ?? "duration");
     setHappyDays(outlet?.happyHour?.days ?? []);
     setHappyStart(outlet?.happyHour ? String(outlet.happyHour.startHour) : "");
     setHappyEnd(outlet?.happyHour ? String(outlet.happyHour.endHour) : "");
     setHappyRate(outlet?.happyHour ? String(outlet.happyHour.rate) : "");
-    setTierRows((outlet?.rateTiers ?? []).map((tier) => ({
-      id: nextTierId.current++,
-      durationHours: String(tier.durationHours),
-      rate: String(tier.rate),
-    })));
+    setTierRows(
+      (outlet?.rateTiers ?? []).map((tier) => ({
+        id: nextTierId.current++,
+        durationHours: String(tier.durationHours),
+        rate: String(tier.rate),
+      })),
+    );
     dialog.current?.showModal();
   }
 
   function closeEditor() {
+    photoRequest.current++;
+    setProcessingPhoto(false);
     dialog.current?.close();
     setEditor(undefined);
   }
@@ -99,15 +154,28 @@ export function useOutlets() {
   }
 
   function toggleHappyDay(day: number) {
-    setHappyDays((days) => days.includes(day) ? days.filter((item) => item !== day) : [...days, day].sort((a, b) => a - b));
+    setHappyDays((days) =>
+      days.includes(day)
+        ? days.filter((item) => item !== day)
+        : [...days, day].sort((a, b) => a - b),
+    );
   }
 
   function addTier() {
-    setTierRows((rows) => [...rows, { id: nextTierId.current++, durationHours: "", rate: "" }]);
+    setTierRows((rows) => [
+      ...rows,
+      { id: nextTierId.current++, durationHours: "", rate: "" },
+    ]);
   }
 
-  function updateTier(id: number, field: "durationHours" | "rate", value: string) {
-    setTierRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value } : row));
+  function updateTier(
+    id: number,
+    field: "durationHours" | "rate",
+    value: string,
+  ) {
+    setTierRows((rows) =>
+      rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
+    );
   }
 
   function removeTier(id: number) {
@@ -116,7 +184,7 @@ export function useOutlets() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (editor === undefined) return;
+    if (editor === undefined || processingPhoto || saving) return;
     const fields = new FormData(event.currentTarget);
     const name = String(fields.get("name") ?? "").trim();
     const city = String(fields.get("city") ?? "").trim();
@@ -144,7 +212,9 @@ export function useOutlets() {
       rate <= 0 ||
       rate > 1000000000
     ) {
-      setError("Complete the outlet details, choose different opening and closing times, and enter a positive whole-number hourly rate (up to Rp 1,000,000,000).");
+      setError(
+        "Complete the outlet details, choose different opening and closing times, and enter a positive whole-number hourly rate (up to Rp 1,000,000,000).",
+      );
       return;
     }
     let happyHour: HappyHour | null = null;
@@ -152,14 +222,32 @@ export function useOutlets() {
       const startHour = Number(happyStart);
       const endHour = Number(happyEnd);
       const happyHourlyRate = Number(happyRate);
-      if (!happyDays.length || !happyStart.trim() || !happyEnd.trim() || !happyRate.trim() ||
-          !Number.isInteger(startHour) || startHour < 0 || startHour > 23 ||
-          !Number.isInteger(endHour) || endHour <= startHour || endHour > 24 ||
-          !Number.isSafeInteger(happyHourlyRate) || happyHourlyRate <= 0 || happyHourlyRate > 1000000000) {
-        setError("Choose at least one happy hour weekday, a valid start/end window, and a positive whole-number hourly rate (up to Rp 1,000,000,000).");
+      if (
+        !happyDays.length ||
+        !happyStart.trim() ||
+        !happyEnd.trim() ||
+        !happyRate.trim() ||
+        !Number.isInteger(startHour) ||
+        startHour < 0 ||
+        startHour > 23 ||
+        !Number.isInteger(endHour) ||
+        endHour <= startHour ||
+        endHour > 24 ||
+        !Number.isSafeInteger(happyHourlyRate) ||
+        happyHourlyRate <= 0 ||
+        happyHourlyRate > 1000000000
+      ) {
+        setError(
+          "Choose at least one happy hour weekday, a valid start/end window, and a positive whole-number hourly rate (up to Rp 1,000,000,000).",
+        );
         return;
       }
-      happyHour = { days: happyDays, startHour, endHour, rate: happyHourlyRate };
+      happyHour = {
+        days: happyDays,
+        startHour,
+        endHour,
+        rate: happyHourlyRate,
+      };
     }
     const rateTiers: RateTier[] = [];
     if (pricingMode === "duration") {
@@ -167,10 +255,19 @@ export function useOutlets() {
       for (const row of tierRows) {
         const durationHours = Number(row.durationHours);
         const tierRate = Number(row.rate);
-        if (!row.durationHours.trim() || !row.rate.trim() ||
-            !Number.isSafeInteger(durationHours) || durationHours < 2 || durationHours > 10 ||
-            !Number.isSafeInteger(tierRate) || tierRate <= 0 || tierRate > 1000000000) {
-          setError("Each tier needs a whole duration from 2 to 10 hours and a positive whole-number hourly rate (up to Rp 1,000,000,000).");
+        if (
+          !row.durationHours.trim() ||
+          !row.rate.trim() ||
+          !Number.isSafeInteger(durationHours) ||
+          durationHours < 2 ||
+          durationHours > 10 ||
+          !Number.isSafeInteger(tierRate) ||
+          tierRate <= 0 ||
+          tierRate > 1000000000
+        ) {
+          setError(
+            "Each tier needs a whole duration from 2 to 10 hours and a positive whole-number hourly rate (up to Rp 1,000,000,000).",
+          );
           return;
         }
         if (thresholds.has(durationHours)) {
@@ -197,7 +294,20 @@ export function useOutlets() {
     setSaving(true);
     setError("");
     try {
-      const input = { name, city, address, active, visibility: visibility as "public" | "private", openingHour, closingHour, rate, pricingMode, happyHour, rateTiers };
+      const input = {
+        name,
+        city,
+        address,
+        ...(photoChanged ? { photo } : {}),
+        active,
+        visibility: visibility as "public" | "private",
+        openingHour,
+        closingHour,
+        rate,
+        pricingMode,
+        happyHour,
+        rateTiers,
+      };
       if (editor) await outletApi.update(editor.id, input);
       else await outletApi.create(input);
       await refreshOutlets();
@@ -236,6 +346,9 @@ export function useOutlets() {
   );
 
   return {
+    photo,
+    processingPhoto,
+    changePhoto,
     outlets,
     filteredOutlets,
     loading,

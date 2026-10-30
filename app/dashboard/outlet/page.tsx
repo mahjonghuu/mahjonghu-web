@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { outletApi, type OutletAccessRecord } from "@/lib/outlet";
 import { Badge, Icon, PageHeading } from "../components";
 import { useOutlets } from "@/hooks/use-outlets";
@@ -96,8 +97,7 @@ function AccessManager({ outletId }: { outletId: string }) {
           />
         </label>
         <label>
-          Expires at (optional){" "}
-          <input name="expiresAt" type="datetime-local" />
+          Expires at (optional) <input name="expiresAt" type="datetime-local" />
         </label>
         <button className="secondary" type="submit" disabled={saving}>
           {saving ? "Saving…" : "Grant access"}
@@ -142,6 +142,9 @@ function AccessManager({ outletId }: { outletId: string }) {
 /** Lists and manages outlets through the backend API. */
 export default function OutletPage() {
   const {
+    photo,
+    processingPhoto,
+    changePhoto,
     outlets,
     filteredOutlets,
     loading,
@@ -163,7 +166,6 @@ export default function OutletPage() {
     addTier,
     updateTier,
     removeTier,
-    setEditor,
     pricingMode,
     changePricingMode,
     happyDays,
@@ -238,11 +240,24 @@ export default function OutletPage() {
         {filteredOutlets.map((outlet, index) => (
           <article className="panel outlet-card" key={outlet.id}>
             <div className={`outlet-art art-${index % 3}`}>
-              <span className="art-grid" />
-              <span className="art-symbol">胡</span>
-              <span className="art-caption">
-                MAHJONGHU / {outlet.city.toUpperCase()}
-              </span>
+              {outlet.photo ? (
+                <Image
+                  src={outlet.photo}
+                  alt={`Photo of ${outlet.name}`}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 950px) 100vw, 33vw"
+                  className="outlet-photo-image"
+                />
+              ) : (
+                <>
+                  <span className="art-grid" />
+                  <span className="art-symbol">胡</span>
+                  <span className="art-caption">
+                    MAHJONGHU / {outlet.city.toUpperCase()}
+                  </span>
+                </>
+              )}
             </div>
             <div className="outlet-card-body">
               <div className="outlet-card-top">
@@ -253,9 +268,7 @@ export default function OutletPage() {
                 <Badge
                   tone={outlet.visibility === "private" ? "gray" : "green"}
                 >
-                  {outlet.visibility === "private"
-                    ? "Members only"
-                    : "Public"}
+                  {outlet.visibility === "private" ? "Members only" : "Public"}
                 </Badge>
               </div>
               <h2>{outlet.name}</h2>
@@ -315,7 +328,8 @@ export default function OutletPage() {
               <div>
                 <p className="eyebrow">WORKSPACE</p>
                 <h2 id="access-dialog-title">
-                  Member access · {outlets.find((outlet) => outlet.id === accessOutletId)?.name}
+                  Member access ·{" "}
+                  {outlets.find((outlet) => outlet.id === accessOutletId)?.name}
                 </h2>
               </div>
               <button
@@ -331,11 +345,7 @@ export default function OutletPage() {
           </div>
         )}
       </dialog>
-      <dialog
-        ref={dialog}
-        className="editor-dialog"
-        onCancel={() => setEditor(undefined)}
-      >
+      <dialog ref={dialog} className="editor-dialog" onCancel={closeEditor}>
         {editor !== undefined && (
           <form onSubmit={save} key={editor?.id ?? "new-outlet"}>
             <div className="dialog-heading">
@@ -384,6 +394,50 @@ export default function OutletPage() {
                 placeholder="Full outlet address"
               />
             </label>
+            <div className="outlet-photo-editor">
+              <label>
+                Outlet photo (optional)
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={saving}
+                  onChange={(event) => {
+                    void changePhoto(event.target.files?.[0] ?? null);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              <div className="outlet-photo-preview">
+                <Image
+                  src={photo ?? "/mahjong-illustration.svg"}
+                  alt={
+                    photo
+                      ? "Outlet photo preview"
+                      : "Default outlet illustration"
+                  }
+                  fill
+                  unoptimized={Boolean(photo)}
+                  sizes="400px"
+                  className="outlet-photo-image"
+                />
+              </div>
+              <p className="field-help">
+                JPEG, PNG, or WebP up to 10 MiB. Photos are resized and
+                compressed before saving. Without a photo, public cards use the
+                default illustration.
+              </p>
+              {processingPhoto && <p role="status">Processing photo…</p>}
+              {photo && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={saving}
+                  onClick={() => void changePhoto(null)}
+                >
+                  Remove photo
+                </button>
+              )}
+            </div>
             <label>
               Operational status
               <select
@@ -428,18 +482,37 @@ export default function OutletPage() {
                 {Array.from({ length: 25 }, (_, hour) => hour).map((hour) => (
                   <option key={hour} value={hour}>
                     {String(hour % 24).padStart(2, "0")}:00
-                    {hour === 24 ? " (end of day)" : hour === 0 ? " (next day if after opening)" : " (next day if before opening)"}
+                    {hour === 24
+                      ? " (end of day)"
+                      : hour === 0
+                        ? " (next day if after opening)"
+                        : " (next day if before opening)"}
                   </option>
                 ))}
               </select>
             </label>
             <label>
               Base hourly rate for 1 hour (Rp)
-              <input name="rate" type="number" required min="1" max="1000000000" step="1" defaultValue={editor?.rate ?? 75000} />
+              <input
+                name="rate"
+                type="number"
+                required
+                min="1"
+                max="1000000000"
+                step="1"
+                defaultValue={editor?.rate ?? 75000}
+              />
             </label>
             <label>
               Pricing mode
-              <select value={pricingMode} onChange={(event) => changePricingMode(event.target.value as "duration" | "happy_hour")}>
+              <select
+                value={pricingMode}
+                onChange={(event) =>
+                  changePricingMode(
+                    event.target.value as "duration" | "happy_hour",
+                  )
+                }
+              >
                 <option value="duration">Duration thresholds</option>
                 <option value="happy_hour">Happy hour by day and time</option>
               </select>
@@ -448,24 +521,61 @@ export default function OutletPage() {
               <div className="rate-tier-editor">
                 <div className="rate-tier-heading">
                   <strong>Duration rate thresholds</strong>
-                  <button type="button" className="secondary" onClick={addTier} disabled={tierRows.length >= 9}>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={addTier}
+                    disabled={tierRows.length >= 9}
+                  >
                     Add threshold
                   </button>
                 </div>
                 <p className="field-help">
-                  Optional. At each threshold, this hourly rate applies to the entire contiguous table session until the next threshold. Unlisted durations keep the latest applicable rate. All tables in this outlet share these rates.
+                  Optional. At each threshold, this hourly rate applies to the
+                  entire contiguous table session until the next threshold.
+                  Unlisted durations keep the latest applicable rate. All tables
+                  in this outlet share these rates.
                 </p>
                 {tierRows.map((tier) => (
                   <div className="rate-tier-row" key={tier.id}>
                     <label>
                       From (hours)
-                      <input type="number" required min="2" max="10" step="1" value={tier.durationHours} onChange={(event) => updateTier(tier.id, "durationHours", event.target.value)} />
+                      <input
+                        type="number"
+                        required
+                        min="2"
+                        max="10"
+                        step="1"
+                        value={tier.durationHours}
+                        onChange={(event) =>
+                          updateTier(
+                            tier.id,
+                            "durationHours",
+                            event.target.value,
+                          )
+                        }
+                      />
                     </label>
                     <label>
                       Hourly rate (Rp)
-                      <input type="number" required min="1" max="1000000000" step="1" value={tier.rate} onChange={(event) => updateTier(tier.id, "rate", event.target.value)} />
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        max="1000000000"
+                        step="1"
+                        value={tier.rate}
+                        onChange={(event) =>
+                          updateTier(tier.id, "rate", event.target.value)
+                        }
+                      />
                     </label>
-                    <button type="button" className="secondary" onClick={() => removeTier(tier.id)} aria-label="Remove threshold row">
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => removeTier(tier.id)}
+                      aria-label="Remove threshold row"
+                    >
                       Remove
                     </button>
                   </div>
@@ -474,35 +584,73 @@ export default function OutletPage() {
             ) : (
               <div className="rate-tier-editor">
                 <strong>Happy hour</strong>
-                <p className="field-help">Select the calendar weekdays and hours that use the happy hour rate. Slots outside this window use the base rate. The next day uses its own weekday, even when a session crosses midnight.</p>
+                <p className="field-help">
+                  Select the calendar weekdays and hours that use the happy hour
+                  rate. Slots outside this window use the base rate. The next
+                  day uses its own weekday, even when a session crosses
+                  midnight.
+                </p>
                 <fieldset className="happy-days">
                   <legend>Days (at least one)</legend>
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, index) => (
-                    <label key={label}>
-                      <input type="checkbox" checked={happyDays.includes(index + 1)} onChange={() => toggleHappyDay(index + 1)} />
-                      {label}
-                    </label>
-                  ))}
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                    (label, index) => (
+                      <label key={label}>
+                        <input
+                          type="checkbox"
+                          checked={happyDays.includes(index + 1)}
+                          onChange={() => toggleHappyDay(index + 1)}
+                        />
+                        {label}
+                      </label>
+                    ),
+                  )}
                 </fieldset>
                 <div className="rate-tier-row">
                   <label>
                     Start hour
-                    <select required value={happyStart} onChange={(event) => setHappyStart(event.target.value)}>
+                    <select
+                      required
+                      value={happyStart}
+                      onChange={(event) => setHappyStart(event.target.value)}
+                    >
                       <option value="">Choose hour</option>
-                      {Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>)}
+                      {Array.from({ length: 24 }, (_, hour) => (
+                        <option key={hour} value={hour}>
+                          {String(hour).padStart(2, "0")}:00
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label>
                     End hour
-                    <select required value={happyEnd} onChange={(event) => setHappyEnd(event.target.value)}>
+                    <select
+                      required
+                      value={happyEnd}
+                      onChange={(event) => setHappyEnd(event.target.value)}
+                    >
                       <option value="">Choose hour</option>
-                      {Array.from({ length: 24 }, (_, index) => index + 1).map((hour) => <option key={hour} value={hour}>{String(hour % 24).padStart(2, "0")}:00{hour === 24 ? " (end of day)" : ""}</option>)}
+                      {Array.from({ length: 24 }, (_, index) => index + 1).map(
+                        (hour) => (
+                          <option key={hour} value={hour}>
+                            {String(hour % 24).padStart(2, "0")}:00
+                            {hour === 24 ? " (end of day)" : ""}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </label>
                 </div>
                 <label>
                   Happy hour rate per hour (Rp)
-                  <input type="number" required min="1" max="1000000000" step="1" value={happyRate} onChange={(event) => setHappyRate(event.target.value)} />
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max="1000000000"
+                    step="1"
+                    value={happyRate}
+                    onChange={(event) => setHappyRate(event.target.value)}
+                  />
                 </label>
               </div>
             )}
@@ -523,7 +671,11 @@ export default function OutletPage() {
               >
                 Cancel
               </button>
-              <button type="submit" className="primary" disabled={saving}>
+              <button
+                type="submit"
+                className="primary"
+                disabled={saving || processingPhoto}
+              >
                 {saving ? "Saving…" : "Save changes"}
               </button>
             </div>

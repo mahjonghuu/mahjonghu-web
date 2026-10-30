@@ -1,7 +1,12 @@
 import { apiRequest } from "./api";
 export type RateTier = { durationHours: number; rate: number };
 export type PricingMode = "duration" | "happy_hour";
-export type HappyHour = { days: number[]; startHour: number; endHour: number; rate: number };
+export type HappyHour = {
+  days: number[];
+  startHour: number;
+  endHour: number;
+  rate: number;
+};
 
 /** Outlet fields returned by the backend summary and mutation endpoints. */
 export type OutletApiRecord = {
@@ -9,6 +14,8 @@ export type OutletApiRecord = {
   name: string;
   city: string;
   address: string;
+  /** Public Supabase Storage URL, or null when the outlet uses the default illustration. */
+  photo: string | null;
   active?: boolean;
   isActive?: boolean;
   visibility: "public" | "private";
@@ -27,6 +34,8 @@ export type OutletInput = {
   name: string;
   city: string;
   address: string;
+  /** New compressed data URL; omit to preserve the saved photo, or use null to remove it. */
+  photo?: string | null;
   active: boolean;
   visibility: "public" | "private";
   openingHour: number;

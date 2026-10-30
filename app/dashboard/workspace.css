@@ -664,6 +664,19 @@ tr:last-child td {
   align-items: center;
   justify-content: center;
 }
+.outlet-photo-image {
+  object-fit: cover;
+}
+.outlet-photo-editor {
+  grid-column: 1 / -1;
+}
+.outlet-photo-preview {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-top: 12px;
+}
 .art-1 {
   background: #798a64;
 }
