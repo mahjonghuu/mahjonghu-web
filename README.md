@@ -2,6 +2,8 @@
 
 Next.js App Router frontend for the MahjongHu mahjong booking business. Public and owner-facing interface copy is in English; booking prices remain in Indonesian rupiah and times use Jakarta time.
 
+The frontend pins Next.js and `eslint-config-next` to `16.4.3` for the security patch upgrade from `16.4.0`. The Next.js configuration keeps `experimental.agentUpgrade: "security"` enabled for security upgrade guidance.
+
 ## Run locally
 
 ```bash
