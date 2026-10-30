@@ -1,12 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState } from "react";
 import styles from "./page.module.css";
 import BookingSchedule from "./booking-schedule";
 import { formatRupiah as money } from "../lib/currency";
-import { apiRequest, ApiError } from "../lib/api";
-import { customerAuthApi, type Customer } from "../lib/customer-auth";
+import { apiRequest } from "../lib/api";
 import type { HappyHour, PricingMode, RateTier } from "../lib/outlet";
 import type { TableApiRecord } from "../lib/table";
 
@@ -46,120 +45,9 @@ function BookingPage() {
   const [outletId, setOutletId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [codeRequested, setCodeRequested] = useState(false);
-  const [authBusy, setAuthBusy] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
-  const [discoveryVersion, setDiscoveryVersion] = useState(0);
 
   useEffect(() => {
     let current = true;
-    customerAuthApi
-      .me()
-      .then(({ user }) => {
-        if (current) setCustomer(user);
-      })
-      .catch(async (cause: unknown) => {
-        if (cause instanceof ApiError && cause.status === 401) {
-          try {
-            await customerAuthApi.logout();
-          } catch (logoutError) {
-            if (current)
-              setAuthError(
-                logoutError instanceof Error
-                  ? logoutError.message
-                  : "Could not clear your member session.",
-              );
-          }
-        } else if (current) {
-          setAuthError(
-            cause instanceof Error
-              ? cause.message
-              : "Could not check your member session.",
-          );
-        }
-      })
-      .finally(() => {
-        if (current) setAuthReady(true);
-      });
-    return () => {
-      current = false;
-    };
-  }, []);
-
-  async function requestCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAuthBusy(true);
-    setAuthError("");
-    setAuthMessage("");
-    try {
-      await customerAuthApi.requestCode(email.trim());
-      setCodeRequested(true);
-      setAuthMessage("A sign-in code has been sent to your email.");
-    } catch (cause) {
-      setAuthError(
-        cause instanceof Error ? cause.message : "Could not send the code.",
-      );
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  async function verifyCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAuthBusy(true);
-    setAuthError("");
-    setAuthMessage("");
-    try {
-      await customerAuthApi.verifyCode(email.trim(), code.trim());
-      const session = await customerAuthApi.me();
-      if (!session.user) throw new Error("Member session unavailable.");
-      setCustomer(session.user);
-      setCodeRequested(false);
-      setCode("");
-      setAuthMessage("Signed in. Loading member venues…");
-      setOutlets([]);
-      setOutletId("");
-      setLoading(true);
-      setError("");
-      setDiscoveryVersion((version) => version + 1);
-    } catch (cause) {
-      setAuthError(cause instanceof Error ? cause.message : "Invalid code.");
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  async function logout() {
-    setAuthBusy(true);
-    setAuthError("");
-    setAuthMessage("");
-    try {
-      await customerAuthApi.logout();
-      setCustomer(null);
-      setCodeRequested(false);
-      setCode("");
-      setOutlets([]);
-      setOutletId("");
-      setLoading(true);
-      setError("");
-      setDiscoveryVersion((version) => version + 1);
-    } catch (cause) {
-      setAuthError(
-        cause instanceof Error ? cause.message : "Could not sign out.",
-      );
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  useEffect(() => {
-    let current = true;
-    if (!authReady) return;
     Promise.all([
       apiRequest<OutletRecord[]>("/outlets/public"),
       apiRequest<TableRecord[]>("/tables/public"),
@@ -196,15 +84,12 @@ function BookingPage() {
           setError("Venues could not be loaded. Please try again later.");
       })
       .finally(() => {
-        if (current) {
-          setLoading(false);
-          setAuthMessage("");
-        }
+        if (current) setLoading(false);
       });
     return () => {
       current = false;
     };
-  }, [authReady, discoveryVersion]);
+  }, []);
 
   const outlet = outlets.find((item) => item.id === outletId);
   const visibleOutlets = outlets.filter(
@@ -241,93 +126,6 @@ function BookingPage() {
           Let’s play <Arrow diagonal />
         </a>
       </header>
-      <section className={styles.memberAccess} aria-label="Member access">
-        {customer ? (
-          <div className={styles.memberRow}>
-            <p>
-              Signed in as <strong>{customer.email}</strong>. Member-only venues
-              are available if an owner has granted you access.
-            </p>
-            <button
-              type="button"
-              disabled={authBusy}
-              onClick={() => void logout()}
-            >
-              Sign out
-            </button>
-          </div>
-        ) : (
-          <div className={styles.memberRow}>
-            <div>
-              <strong>Have member access?</strong>
-              <p>
-                Sign in with an email code to see private venues. You can still
-                book public venues without signing in; your friends do not need
-                to be members.
-              </p>
-            </div>
-            <form
-              onSubmit={codeRequested ? verifyCode : requestCode}
-              className={styles.memberForm}
-            >
-              <label>
-                Email{" "}
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setCodeRequested(false);
-                    setCode("");
-                  }}
-                  placeholder="email@example.com"
-                />
-              </label>
-              {codeRequested && (
-                <label>
-                  Email code{" "}
-                  <input
-                    required
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    value={code}
-                    onChange={(event) => setCode(event.target.value)}
-                    placeholder="Sign-in code"
-                  />
-                </label>
-              )}
-              <button type="submit" disabled={authBusy}>
-                {authBusy
-                  ? "Please wait…"
-                  : codeRequested
-                    ? "Sign in"
-                    : "Send code"}
-              </button>
-              {codeRequested && (
-                <button
-                  type="button"
-                  disabled={authBusy}
-                  onClick={() => {
-                    setCodeRequested(false);
-                    setCode("");
-                    setAuthError("");
-                  }}
-                >
-                  Resend code
-                </button>
-              )}
-            </form>
-          </div>
-        )}
-        {authError && (
-          <p role="alert" className={styles.memberError}>
-            {authError}
-          </p>
-        )}
-        {authMessage && <p role="status">{authMessage}</p>}
-      </section>
 
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={styles.heroCopy}>
@@ -432,7 +230,7 @@ function BookingPage() {
 
       {outlet && (
         <BookingSchedule
-          key={`${outlet.id}:${discoveryVersion}`}
+          key={outlet.id}
           outlet={{
             id: outlet.id,
             name: outlet.name,

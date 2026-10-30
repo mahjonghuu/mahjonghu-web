@@ -15,15 +15,16 @@ Open http://localhost:3000 for the public entry page. Dashboard routes under `/d
 
 The public footer's website inquiry link identifies FlowPOS and opens a prefilled WhatsApp conversation.
 
-Private outlets appear on the public booking page only after a granted
-customer signs in using the emailed one-time code. The owner dashboard's
-outlet editor controls visibility; the separate "Manage access" dialog handles
-per-customer grants, optional expiry, and revocation. Long grant lists scroll
-inside the dialog instead of stretching outlet cards. Only the booking customer
-needs a grant; fellow players do not need accounts. Public outlets remain
-bookable without customer login.
-The backend requires `RESEND_API_KEY` and a verified `EMAIL_FROM` sender for
-member email delivery; see the backend README for configuration.
+The public homepage is a guest discovery and booking entry point: it has no
+member sign-in form or member session check, and public venues load immediately
+without authentication. Guests can select a venue and continue through the
+existing booking and checkout flow without an account.
+
+The owner dashboard's outlet editor still controls visibility; its separate
+"Manage access" dialog manages per-customer grants, optional expiry, and
+revocation. Long grant lists scroll inside the dialog instead of stretching
+outlet cards. These access-management features remain separate from the guest
+homepage.
 
 The owner login screen uses a responsive split layout on desktop and a stacked layout on mobile. Its warm neutral background, white form card, and green actions retain the existing palette; the form still authenticates against `POST /auth/login`.
 
@@ -37,6 +38,7 @@ npm run build
 
 - The public page fetches active outlets, their base one-hour rates, pricing modes, and either duration thresholds or happy hour schedules from `GET /outlets/public`, and their tables from `GET /tables/public`. City filters, table counts, table names, and displayed base rates use those API responses.
 - Public outlet cards all use the same local mahjong SVG illustration; descriptions/amenities are not supplied by the API and are not presented as live outlet details.
+- The outlet section has a distinct tinted background. Cards use a grid on desktop and a horizontally swipeable row on mobile at widths of 650px or less, rather than a long vertical list.
 - Each outlet's opening and closing hours are configured in the dashboard outlet editor. A closing hour earlier than opening (for example, 13:00–04:00) means the following calendar day; 00:00 (24) remains the end of the same day. The public booking grid treats the selected date as the opening date, includes one-hour slots after midnight on the next day, and checkout validates the same local-time bounds. Equal opening and closing hours are not supported.
 - After a date is selected, the booking schedule queries `GET /bookings/availability` for each future one-hour slot. Unavailable slots cannot be selected. Consecutive selected hours on one table form a session. In duration mode, its entire duration uses the outlet's effective hourly rate from the highest configured threshold at or below that duration (or the base rate if none applies). In happy hour mode, each full-hour slot uses the configured happy hour rate only if its own calendar weekday and start hour fall within the selected weekdays and start/end window; other slots use the base rate. A session crossing midnight uses the following day's weekday for slots after midnight. Each table session is priced independently.
 - Selecting slots is an availability preview. Submitting the `/payment` contact form creates one atomic backend hold per table session and one aggregate DOKU Checkout; each hold and the DOKU payment page expire after 15 minutes.
