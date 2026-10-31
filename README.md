@@ -34,9 +34,20 @@ npm run lint
 npm run build
 ```
 
+## Public SEO
+
+- Set server-side `SITE_URL` to the canonical HTTPS origin **before building** (for example, `SITE_URL=https://booking.example.com npm run build`). Use the actual public domain, with no path, query, fragment, or credentials. Changing it requires rebuilding and redeploying the web app.
+- If `SITE_URL` is unset, Vercel's stable `VERCEL_PROJECT_PRODUCTION_URL` supplies the origin. Preview-specific `VERCEL_URL` is never used. Local development falls back to `http://localhost:3000`; production builds fail if the origin is missing, non-HTTPS, or loopback rather than publishing incorrect canonical URLs.
+- The homepage has its own canonical URL, booking-focused metadata, Open Graph and Twitter large-image cards. `/opengraph-image` generates a local 1200×630 PNG without an external image service.
+- `/robots.txt` advertises `/sitemap.xml`. The sitemap contains only the indexable homepage; no outlet detail routes or modification dates are invented. Crawling remains allowed so search engines can read `noindex, nofollow` on `/cek-booking`, `/payment` and its result pages, and all `/dashboard` routes including login. These directives are not access control; dashboard session enforcement remains in the proxy.
+- Homepage venue names, cities, addresses, photos, and rates are server-rendered from fresh public API responses beneath Suspense. City filters and booking remain interactive. Only the customer cookie may be forwarded to discovery; owner cookies are never forwarded. Responses are private and uncached. When the API hostname differs from the web hostname, discovery also refreshes in the browser before restoring saved bookings, preserving API-host-only customer sessions.
+- JSON-LD links the website, organization, and explicitly active public outlets using actual API names, addresses, and available photos. Customer-granted private outlets never enter the structured data. Unsupported ratings, phone numbers, coordinates, and recurring opening schedules are omitted; inline JSON is escaped against script termination.
+- After production deployment, verify the canonical domain, social image, robots and sitemap URLs, then submit `/sitemap.xml` in Google Search Console. Search engine indexing and ranking are external outcomes, not guaranteed by this configuration.
+
+
 ## Public booking preview
 
-- The public page fetches active outlets, their base one-hour rates, pricing modes, and either duration thresholds or happy hour schedules from `GET /outlets/public`, and their tables from `GET /tables/public`. City filters, table counts, table names, and displayed base rates use those API responses.
+- The public page server-loads active outlets, their base one-hour rates, pricing modes, and either duration thresholds or happy hour schedules from `GET /outlets/public`, and their tables from `GET /tables/public`. City filters, table counts, table names, and displayed base rates use those API responses. If tables fail to load, venue information remains visible with an error and booking is disabled until a successful reload.
 - Public outlet cards use the optional photo saved by the owner; outlets without a photo keep the local mahjong SVG illustration. In **Outlets → Add outlet / Edit outlet**, choose a JPEG, PNG, or WebP file (up to 10 MiB), preview it, then save. The browser resizes photos to at most 1600px and compresses them to JPEG up to 512 KiB. **Remove photo** restores the default after saving. The backend uploads the file to Supabase Storage and stores only its public URL in PostgreSQL. Configure the backend's `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and public `SUPABASE_OUTLET_PHOTOS_BUCKET` (default `outlet-photos`) as described in the backend README; never expose the service-role key to the frontend. Compressed photos load directly from Storage without another Next.js image transformation.
 - Choosing or removing a photo only updates the editor preview until **Save changes** succeeds. Cancelling the editor leaves the saved photo unchanged. Unsupported or unreadable uploads show an error without replacing the current preview.
 - The outlet section has a distinct tinted background. Cards use a grid on desktop and a horizontally swipeable row on mobile at widths of 650px or less, rather than a long vertical list.
