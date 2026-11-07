@@ -8,10 +8,15 @@ import { apiRequest } from "../../../lib/api";
 import styles from "./login.module.css";
 
 type LoginResponse = {
-  user: { id: string; email: string; role: "owner" };
+  user: {
+    id: string;
+    email: string;
+    role: "owner" | "employee";
+    outletId: string | null;
+  };
 };
 
-/** Authenticates dashboard owners through the backend login endpoint. */
+/** Authenticates owners and employees through the backend login endpoint. */
 export default function DashboardLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -24,13 +29,17 @@ export default function DashboardLoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await apiRequest<LoginResponse>("/auth/login", {
+      const result = await apiRequest<LoginResponse>("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       window.localStorage.removeItem("ownerToken");
-      router.replace("/dashboard");
+      router.replace(
+        result.user.role === "employee"
+          ? "/dashboard/booking"
+          : "/dashboard",
+      );
     } catch {
       setError("Invalid email or password.");
     } finally {
@@ -56,7 +65,7 @@ export default function DashboardLoginPage() {
               <small>BUSINESS SPACE</small>
             </span>
           </Link>
-          <span className={styles.accessLabel}>OWNER ACCESS ONLY</span>
+          <span className={styles.accessLabel}>TEAM ACCESS</span>
         </header>
 
         <div className={styles.content}>
@@ -79,7 +88,7 @@ export default function DashboardLoginPage() {
             <div className={styles.cardHeading}>
               <span className={styles.cardEyebrow}>DASHBOARD ACCESS</span>
               <h2 id="login-title">Sign in to the dashboard</h2>
-              <p>Use your owner account to continue.</p>
+              <p>Use your owner or employee account to continue.</p>
             </div>
             <form onSubmit={submit} className={styles.form}>
               <label className={styles.field}>

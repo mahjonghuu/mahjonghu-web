@@ -12,6 +12,7 @@ import {
 import { outletApi } from "@/lib/outlet";
 import { tableApi } from "@/lib/table";
 import { bookingApi } from "@/lib/booking";
+import { sessionApi, type DashboardRole } from "@/lib/session";
 import type { BookingRecord } from "@/lib/booking";
 import type { OutletApiRecord } from "@/lib/outlet";
 import type { WorkspaceData } from "./model";
@@ -47,6 +48,7 @@ export type DemoWorkspaceData = WorkspaceData;
 type WorkspaceState = {
   data: DemoWorkspaceData;
   setData: Dispatch<SetStateAction<DemoWorkspaceData>>;
+  role: DashboardRole | null;
   outletFilter: string;
   setOutletFilter: Dispatch<SetStateAction<string>>;
   from: string;
@@ -64,14 +66,28 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     tables: [],
     transactions: [],
   });
+  const [role, setRole] = useState<DashboardRole | null>(null);
   const [outletFilter, setOutletFilter] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
   useEffect(() => {
     let active = true;
-    Promise.all([outletApi.list(), tableApi.list(), bookingApi.list()])
-      .then(([outlets, tables, bookings]) => {
+    sessionApi
+      .me()
+      .then(async (session) => {
+        if (!active) return;
+        setRole(session.role);
+        if (session.role === "employee") {
+          // Employees only have booking history; owner-only resources are not requested.
+          setData({ outlets: [], tables: [], transactions: [] });
+          return;
+        }
+        const [outlets, tables, bookings] = await Promise.all([
+          outletApi.list(),
+          tableApi.list(),
+          bookingApi.list(),
+        ]);
         if (!active) return;
         setData({
           outlets: outlets.map(toOutlet),
@@ -94,6 +110,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       value={{
         data,
         setData,
+        role,
         outletFilter,
         setOutletFilter,
         from,

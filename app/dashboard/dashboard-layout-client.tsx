@@ -3,26 +3,50 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { apiRequest } from "../../lib/api";
 import type { ReactNode } from "react";
+import { apiRequest } from "../../lib/api";
 import { Icon } from "./components";
-import { WorkspaceProvider } from "./workspace-state";
+import { useWorkspace, WorkspaceProvider } from "./workspace-state";
 import "./workspace.css";
 
 const navigation = [
-  { label: "Dashboard", href: "/dashboard", icon: 0 },
-  { label: "Bookings", href: "/dashboard/booking", icon: 4 },
-  { label: "Outlets", href: "/dashboard/outlet", icon: 1 },
-  { label: "Advertisements", href: "/dashboard/advertisements", icon: 2 },
-  { label: "Tables", href: "/dashboard/table", icon: 2 },
-  { label: "Revenue reports", href: "/dashboard/revenue", icon: 3 },
+  { label: "Dashboard", href: "/dashboard", icon: 0, ownerOnly: true },
+  { label: "Bookings", href: "/dashboard/booking", icon: 4, ownerOnly: false },
+  { label: "Outlets", href: "/dashboard/outlet", icon: 1, ownerOnly: true },
+  {
+    label: "Advertisements",
+    href: "/dashboard/advertisements",
+    icon: 2,
+    ownerOnly: true,
+  },
+  { label: "Tables", href: "/dashboard/table", icon: 2, ownerOnly: true },
+  {
+    label: "Revenue reports",
+    href: "/dashboard/revenue",
+    icon: 3,
+    ownerOnly: true,
+  },
+  {
+    label: "Employees",
+    href: "/dashboard/employees",
+    icon: 5,
+    ownerOnly: true,
+  },
 ];
 
 function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { role } = useWorkspace();
+
+  const visibleNavigation =
+    role === "owner"
+      ? navigation
+      : navigation.filter((item) => !item.ownerOnly);
   const active =
-    navigation.find((item) => item.href === pathname) ?? navigation[0];
+    visibleNavigation.find((item) => item.href === pathname) ??
+    visibleNavigation[0] ??
+    navigation[0];
 
   return (
     <div className="workspace">
@@ -45,7 +69,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
           WORKSPACE <span>PRO</span>
         </div>
         <nav aria-label="Internal navigation">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const selected = item.href === active.href;
             return (
               <Link

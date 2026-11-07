@@ -8,6 +8,7 @@ const paths = [
   "M3 5h18v12H3z M6 17v4 M18 17v4 M3 9h18",
   "M4 21V12h4v9 M10 21V7h4v14 M16 21V3h4v18",
   "M5 4h14a2 2 0 0 1 2 2v15H3V6a2 2 0 0 1 2-2 M16 2v4 M8 2v4 M3 10h18 M8 14h3",
+  "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21a8 8 0 0 1 16 0",
 ];
 
 /** Renders one of the workspace's inline SVG navigation icons. */
@@ -198,9 +199,7 @@ export function TransactionTable({
         </tbody>
       </table>
       {!transactions.length && (
-        <div className="empty">
-          No transactions for this outlet and period.
-        </div>
+        <div className="empty">No transactions for this outlet and period.</div>
       )}
     </div>
   );

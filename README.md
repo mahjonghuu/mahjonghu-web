@@ -1,6 +1,6 @@
 # MahjongHu Web
 
-Next.js App Router frontend for the MahjongHu mahjong booking business. Public and owner-facing interface copy is in English; booking prices remain in Indonesian rupiah and times use Jakarta time.
+Next.js App Router frontend for the MahjongHu mahjong booking business. Public and dashboard interface copy is in English; booking prices remain in Indonesian rupiah and times use Jakarta time.
 
 The frontend pins Next.js and `eslint-config-next` to `16.4.3` for the security patch upgrade from `16.4.0`. The Next.js configuration keeps `experimental.agentUpgrade: "security"` enabled for security upgrade guidance.
 
@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 for the public entry page. Dashboard routes under `/dashboard` require an owner account created by a trusted backend administrator; sign in at `/dashboard/login`.
+Open http://localhost:3000 for the public entry page. Dashboard routes under `/dashboard` require an owner or employee account created in the backend; sign in at `/dashboard/login`.
 
 The public footer's website inquiry link identifies FlowPOS and opens a prefilled WhatsApp conversation.
 
@@ -20,13 +20,14 @@ member sign-in form or member session check, and public venues load immediately
 without authentication. Guests can select a venue and continue through the
 existing booking and checkout flow without an account.
 
-The owner dashboard's outlet editor still controls visibility; its separate
+The dashboard outlet editor still controls visibility; its separate
 "Manage access" dialog manages per-customer grants, optional expiry, and
 revocation. Long grant lists scroll inside the dialog instead of stretching
-outlet cards. These access-management features remain separate from the guest
-homepage.
+outlet cards. These features are separate from both the guest homepage and the
+owner-only Employees page, which assigns each employee account to exactly one
+outlet.
 
-The owner login screen uses a responsive split layout on desktop and a stacked layout on mobile. Its warm neutral background, white form card, and green actions retain the existing palette; the form still authenticates against `POST /auth/login`.
+The dashboard login screen uses a responsive split layout on desktop and a stacked layout on mobile. Its warm neutral background, white form card, and green actions retain the existing palette; the form authenticates owners and employees against `POST /auth/login`.
 
 ```bash
 npx tsc --noEmit
@@ -75,13 +76,13 @@ The owner UI uses authenticated `GET`, `POST`, `PATCH`, and `DELETE /advertiseme
 
 ## Dashboard PoC plan and implementation
 
-1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, bookings, outlets, advertisements, tables, and revenue reports.
+1. Keep the public entry point separate from the internal workspace. Provide responsive sidebar navigation between dashboard, bookings, outlets, advertisements, tables, revenue reports, and employees.
 2. Manage outlets with names, cities, addresses, and operational status through the PostgreSQL-backed outlet API.
 3. Display persisted booking records in the owner dashboard; dashboard overview and revenue report aggregates come from backend APIs. Table management remains demo data.
 4. Persisted dashboard and revenue-report views are implemented; table-management data remains client-side demo data.
 5. Verify API flows while preserving clear demo-only boundaries for unconnected modules.
 
-Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/advertisements`, `/dashboard/table`, and `/dashboard/revenue`. The overview requests backend-computed metrics from `GET /dashboard/summary`; outlet management, scheduled advertisements, and booking records also load from backend APIs.
+Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `/dashboard/outlet`, `/dashboard/advertisements`, `/dashboard/table`, `/dashboard/revenue`, and `/dashboard/employees`. The overview requests backend-computed metrics from `GET /dashboard/summary`; outlet management, scheduled advertisements, employee access, and booking records also load from backend APIs. Owners see every route. Employees land on `/dashboard/booking` and only see the read-only Bookings page for their assigned outlet; the proxy redirects owner-only routes back to that landing page, and navigation hides those items. Employees cannot manage tables, cancel bookings, or access revenue, outlets, advertisements, or employee management.
 
 ### Responsive workspace
 
@@ -95,7 +96,8 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 
 - `app/dashboard/model.ts` retains display types and sample data used by the still-demo table-management route.
 - `app/dashboard/layout.tsx` provides shared navigation and dashboard filter state.
-- `app/dashboard/booking/page.tsx` lists persisted records from `GET /bookings` and lets the owner cancel a confirmed booking via `PATCH /bookings/:id/cancel`; the server allows cancellation only before its start time. The action releases the slot, but never initiates a refund. Owner and customer arrange any refund manually outside the app. The overview and revenue report still use backend payment aggregates; cancelled bookings do not erase settled charges.
+- `app/dashboard/booking/page.tsx` lists persisted records from `GET /bookings` and lets the owner cancel a confirmed booking via `PATCH /bookings/:id/cancel`; the server allows cancellation only before its start time. Employees see the same data scoped to their assigned outlet, without cancellation controls. The action releases the slot, but never initiates a refund. Owner and customer arrange any refund manually outside the app. The overview and revenue report still use backend payment aggregates; cancelled bookings do not erase settled charges.
+- `app/dashboard/employees/page.tsx` is the owner-only Employees page. It creates employee accounts with a temporary password and exactly one outlet, lists active and inactive employees, supports reassignment and password reset, and deactivates rather than deletes accounts. API calls use authenticated `GET`, `POST`, `PATCH`, and `DELETE /employees`.
 - Set `NEXT_PUBLIC_API_URL` to the backend origin when it is not `http://localhost:3001`; an unset or blank value falls back to `http://localhost:3001`. Restart Next.js after changing this build-time variable. The backend needs its PostgreSQL schema migrated and must allow the frontend origin through `WEB_ORIGIN`.
 - Outlet list, create, edit, and archive requests use `GET`, `POST`, `PATCH`, and `DELETE /outlets`; booking records load through the dashboard-only `GET /bookings` endpoint.
 - Table management remains demo-only; dashboard occupancy and payment totals, per-outlet revenue, transaction details, and report CSV source rows come from the backend.
@@ -107,6 +109,6 @@ Dashboard navigation uses nested routes at `/dashboard`, `/dashboard/booking`, `
 
 ## Security and scope
 
-Dashboard login is handled by backend `POST /auth/login`, which sets an eight-hour `HttpOnly`, `SameSite=Strict` JWT cookie; the token is not exposed to client JavaScript. `proxy.ts` validates that session with backend `GET /auth/me` before serving any `/dashboard` route except `/dashboard/login`. Browser API requests include the cookie, and backend guards enforce owner authorization independently. Logout clears the cookie through `POST /auth/logout`. Keep the web app and API same-site, configure credentialed CORS using `WEB_ORIGIN`, and set backend `OWNER_COOKIE_DOMAIN` to their shared parent domain if the API uses a separate subdomain (for `mahjonghuu.com` and `api.mahjonghuu.com`, use `mahjonghuu.com`). Otherwise the login succeeds on the API but the dashboard proxy cannot see its cookie and redirects back to login. Owner provisioning and `JWT_SECRET` setup are documented in `../mahjonghu-backend/README.md`. There is no public registration or role-promotion flow. Table management remains demo data; the public booking page remains frontend-only.
+Dashboard login is handled by backend `POST /auth/login`, which sets an eight-hour `HttpOnly`, `SameSite=Strict` JWT cookie; the token is not exposed to client JavaScript. `proxy.ts` validates that session with backend `GET /auth/me` before serving any `/dashboard` route except `/dashboard/login`, redirects employees away from owner-only pages, and sends employees to `/dashboard/booking` after login. Browser API requests include the cookie, and backend guards enforce owner access plus read-only employee booking scope independently. Logout clears the cookie through `POST /auth/logout`. Keep the web app and API same-site, configure credentialed CORS using `WEB_ORIGIN`, and set backend `OWNER_COOKIE_DOMAIN` to their shared parent domain if the API uses a separate subdomain (for `mahjonghuu.com` and `api.mahjonghuu.com`, use `mahjonghuu.com`). Otherwise the login succeeds on the API but the dashboard proxy cannot see its cookie and redirects back to login. Owner and employee provisioning and `JWT_SECRET` setup are documented in `../mahjonghu-backend/README.md`. There is no public registration or role-promotion flow.
 
-The login route does not mount the workspace data provider; owner-only outlet, table, and booking requests start only after entering an authenticated dashboard route.
+The login route does not mount the workspace data provider; outlet, table, and booking requests start only after entering an authenticated dashboard route.

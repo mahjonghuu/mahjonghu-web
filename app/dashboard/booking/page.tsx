@@ -5,6 +5,7 @@ import { Badge, PageHeading } from "../components";
 import { rupiah } from "../model";
 import { useBookings } from "@/hooks/use-bookings";
 import { bookingApi, type BookingRecord } from "@/lib/booking";
+import { useWorkspace } from "../workspace-state";
 
 const statusLabels: Record<string, string> = {
   pending: "Awaiting payment",
@@ -33,6 +34,8 @@ const formatDateTime = (value: string) =>
 
 /** Lists persisted guest reservations for internal outlet operations. */
 export default function BookingPage() {
+  const { role } = useWorkspace();
+  const canCancel = role === "owner";
   const { bookings, loading, error, refreshing, refresh } = useBookings();
   const [outletFilter, setOutletFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -46,15 +49,22 @@ export default function BookingPage() {
       !window.confirm(
         `Cancel booking ${booking.reference} (${booking.customerName})? The table slot will become available again. Refunds are not processed automatically.`,
       )
-    ) return;
+    )
+      return;
     setCancellingId(booking.id);
     setCancelError("");
     setCancelMessage("");
     try {
       await bookingApi.cancel(booking.id);
-      setCancelMessage(`Booking ${booking.reference} was cancelled. Arrange a refund directly with the customer if needed.`);
+      setCancelMessage(
+        `Booking ${booking.reference} was cancelled. Arrange a refund directly with the customer if needed.`,
+      );
     } catch (cause) {
-      setCancelError(cause instanceof Error ? cause.message : "Could not cancel the booking.");
+      setCancelError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not cancel the booking.",
+      );
     } finally {
       await refresh();
       setCancellingId(null);
@@ -90,7 +100,11 @@ export default function BookingPage() {
     <>
       <PageHeading
         title="Bookings"
-        description="Track table reservations, customer details, schedules, and booking statuses."
+        description={
+          canCancel
+            ? "Track table reservations, customer details, schedules, and booking statuses."
+            : "Read-only customer booking history for your assigned outlet."
+        }
         action={
           <button
             className="secondary"
@@ -101,6 +115,11 @@ export default function BookingPage() {
           </button>
         }
       />
+      {role === "employee" && (
+        <p className="field-help">
+          Your account can view bookings for its assigned outlet only.
+        </p>
+      )}
       <div className="stats-grid booking-stats">
         <article className="stat-card">
           <div className="stat-label">Total bookings</div>
@@ -157,8 +176,16 @@ export default function BookingPage() {
           {error}
         </p>
       )}
-      {cancelError && <p className="notice error" role="alert">{cancelError}</p>}
-      {cancelMessage && <p className="notice" role="status">{cancelMessage}</p>}
+      {cancelError && (
+        <p className="notice error" role="alert">
+          {cancelError}
+        </p>
+      )}
+      {cancelMessage && (
+        <p className="notice" role="status">
+          {cancelMessage}
+        </p>
+      )}
       {loading && (
         <p className="field-help" role="status">
           Loading bookings…
@@ -183,7 +210,7 @@ export default function BookingPage() {
                   <th scope="col">Duration</th>
                   <th scope="col">Total</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Actions</th>
+                  {canCancel && <th scope="col">Actions</th>}
                 </tr>
               </thead>
               <tbody role="rowgroup">
@@ -213,19 +240,23 @@ export default function BookingPage() {
                         {statusLabels[booking.status] ?? booking.status}
                       </Badge>
                     </td>
-                    <td role="cell" data-label="Actions">
-                      {booking.status === "confirmed" && (
-                        <button
-                          type="button"
-                          className="secondary"
-                          disabled={cancellingId !== null}
-                          onClick={() => void cancelBooking(booking)}
-                          aria-label={`Cancel booking ${booking.reference}`}
-                        >
-                          {cancellingId === booking.id ? "Cancelling…" : "Cancel"}
-                        </button>
-                      )}
-                    </td>
+                    {canCancel && (
+                      <td role="cell" data-label="Actions">
+                        {booking.status === "confirmed" && (
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={cancellingId !== null}
+                            onClick={() => void cancelBooking(booking)}
+                            aria-label={`Cancel booking ${booking.reference}`}
+                          >
+                            {cancellingId === booking.id
+                              ? "Cancelling…"
+                              : "Cancel"}
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -240,9 +271,13 @@ export default function BookingPage() {
           </div>
         </section>
       )}
-      <p className="field-help">
-        Cancellation is only available for confirmed bookings before their start time. Contact the customer to arrange any refund manually; cancellation does not automatically return the payment.
-      </p>
+      {canCancel && (
+        <p className="field-help">
+          Cancellation is only available for confirmed bookings before their
+          start time. Contact the customer to arrange any refund manually;
+          cancellation does not automatically return the payment.
+        </p>
+      )}
     </>
   );
 }
