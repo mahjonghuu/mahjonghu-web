@@ -35,8 +35,8 @@ export default function BookingSchedule({
     sessions,
     tableCount,
     total,
-    durationValid,
-    durationError,
+    totalHours,
+    toggleSlot,
     validDate,
     nearestDate,
     hasExpiredSelection,
@@ -45,9 +45,7 @@ export default function BookingSchedule({
     availabilityError,
     nameOfTable,
     isSlotAvailable,
-    isSlotUnavailable,
     changeDate,
-    toggleSlot,
     clearSelection,
     removeSession,
     retryAvailability,
@@ -56,6 +54,13 @@ export default function BookingSchedule({
   const openingDayHours = hours.filter((hour) => hour < 24).length;
   const nextDayHours = hours.length - openingDayHours;
   const dateInput = useRef<HTMLInputElement>(null);
+  const gridUnavailableLabel = !validDate
+    ? "Choose date"
+    : availabilityLoading
+      ? "Loading"
+      : availabilityError
+        ? "Error"
+        : null;
 
   return (
     <section
@@ -73,7 +78,7 @@ export default function BookingSchedule({
         <p>
           One table or your whole crew?
           <br />
-          Choose all the tables and hours you need.
+          Pick one-hour blocks for each table.
         </p>
       </div>
       <div className={styles.controls}>
@@ -119,7 +124,7 @@ export default function BookingSchedule({
         Nearest schedule: {playDateFormat.format(operatingHourDate(nearestDate, 12))} ·{" "}
         {hourLabel(outlet.openingHour)}–{hourLabel(outlet.closingHour < outlet.openingHour ? outlet.closingHour + 24 : outlet.closingHour)}.
         Your selection applies to one venue and operating date. Changing venue or date clears your selection.
-        One contiguous session per table can last up to 10 hours.
+        Adjacent blocks on the same table form one session, up to 10 hours.
       </p>
       <div className={styles.bookingLayout}>
         <div className={styles.schedulePanel}>
@@ -143,7 +148,7 @@ export default function BookingSchedule({
               <i className={styles.bookedKey} />
               Unavailable
             </span>
-            <small>1 slot = 1 hour / table</small>
+            <small>One-hour blocks start on the hour or half-hour</small>
           </div>
           {availabilityLoading && date && (
             <p role="status">Loading table availability...</p>
@@ -160,7 +165,7 @@ export default function BookingSchedule({
             <div className={styles.dateNotice} role="status">
               {date
                 ? "Choose the nearest operating date or a later date to continue."
-                : "Choose a date or click Nearest schedule to start selecting slots."}
+                : "Choose a date or click Nearest schedule to see start times."}
               <button type="button" onClick={() => dateInput.current?.focus()}>
                 Choose a date <span aria-hidden="true">↑</span>
               </button>
@@ -170,7 +175,7 @@ export default function BookingSchedule({
             className={styles.gridScroll}
             tabIndex={0}
             role="region"
-            aria-label="Table schedule; scroll horizontally to see all hours"
+            aria-label="Table schedule; scroll horizontally to see all start times"
           >
             <table
               className={styles.scheduleTable}
@@ -178,9 +183,12 @@ export default function BookingSchedule({
             >
               <caption className={styles.srOnly}>
                 Schedule for {outlet.name}
-                {date && `, ${date}`}. Each slot lasts one hour. Select multiple
-                slots to book more tables or hours.
+                {date && `, ${date}`}. Select a one-hour block or select it
+                again to remove it.
               </caption>
+              <colgroup />
+              {openingDayHours > 0 && <colgroup span={openingDayHours} />}
+              {nextDayHours > 0 && <colgroup span={nextDayHours} />}
               <thead>
                 {nextDayHours > 0 && (
                   <tr className={styles.dayBand}>
@@ -194,17 +202,12 @@ export default function BookingSchedule({
                   </tr>
                 )}
                 <tr className={nextDayHours > 0 ? styles.hourRowAfterBand : undefined}>
-                  <th scope="col">TABLE / HOUR</th>
-                  {hours.map((hour) => {
-                    const start = `${String(hour % 24).padStart(2, "0")}:00`;
-                    const end = `${String((hour + 1) % 24).padStart(2, "0")}:00`;
-                    return (
-                      <th scope="col" key={hour}>
-                        {start}
-                        <span>{end}</span>
-                      </th>
-                    );
-                  })}
+                  <th scope="col">TABLE / START</th>
+                  {hours.map((hour) => (
+                    <th scope="col" key={hour} className={hour === 24 ? styles.nextDayStart : undefined}>
+                      {hourLabel(hour, false)}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -223,42 +226,32 @@ export default function BookingSchedule({
                       </span>
                     </th>
                     {hours.map((hour) => {
-                      const available = isSlotAvailable(table, hour);
-                      const unavailable = isSlotUnavailable(table, hour);
-                      const blocked =
-                        !validDate ||
-                        availabilityLoading ||
-                        Boolean(availabilityError) ||
-                        !available;
-                      const active = selected.some(
+                      const picked = selected.some(
                         (slot) => slot.table === table && slot.hour === hour,
                       );
+                      const unavailable = !picked && !gridUnavailableLabel &&
+                        !isSlotAvailable(table, hour);
+                      const blocked = !picked && (Boolean(gridUnavailableLabel) || unavailable);
+                      const label = picked
+                        ? "Selected"
+                        : gridUnavailableLabel ?? (unavailable ? "Unavailable" : "Select");
+                      const appearance = picked ? styles.selected : unavailable ? styles.booked : "";
                       return (
-                        <td key={hour}>
+                        <td key={hour} className={hour === 24 ? styles.nextDayStart : undefined}>
                           <button
                             type="button"
                             data-table={table}
                             data-hour={hour}
-                            className={`${styles.slot} ${unavailable ? styles.booked : active ? styles.selected : ""}`}
+                            className={`${styles.slot} ${appearance}`}
                             disabled={blocked}
-                            aria-pressed={active}
-                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)}–${hourLabel(hour + 1)}, ${availabilityLoading ? "loading availability" : availabilityError ? "availability could not be loaded" : unavailable ? "unavailable" : active ? "selected, click to remove" : "available"}`}
+                            aria-pressed={picked}
+                            aria-label={`${nameOfTable(table)}, ${hourLabel(hour)} to ${hourLabel(hour + 1)}`}
                             onClick={() => toggleSlot(table, hour)}
                           >
                             <span aria-hidden="true">
-                              {unavailable ? "—" : active ? "✓" : "+"}
+                              {picked ? "✓" : blocked ? "—" : "+"}
                             </span>
-                            <small>
-                              {availabilityLoading
-                                ? "Loading"
-                                : availabilityError
-                                  ? "Error"
-                                  : unavailable
-                                    ? "Unavailable"
-                                    : active
-                                      ? "Selected"
-                                      : "Select"}
-                            </small>
+                            <small>{label}</small>
                           </button>
                         </td>
                       );
@@ -269,8 +262,8 @@ export default function BookingSchedule({
             </table>
           </div>
           <div className={styles.gridFooter}>
-            <span>← Scroll to see more hours →</span>
-            <span>Click again to deselect a slot.</span>
+            <span>← Scroll to see more start times →</span>
+            <span>Select a block to add one hour. Select it again to remove it.</span>
           </div>
         </div>
         <aside className={styles.summary} aria-labelledby="selection-title">
@@ -287,31 +280,31 @@ export default function BookingSchedule({
                 : "No date selected"}
             </span>
           </p>
-          {selected.length === 0 ? (
+          <div role="status" className={styles.srOnly}>
+            {sessions.length
+              ? `${sessions.length} ${sessions.length === 1 ? "session" : "sessions"} selected, ${totalHours} table-hours.`
+              : "No sessions selected."}
+          </div>
+          {sessions.length === 0 ? (
             <div className={styles.empty}>
               <span aria-hidden="true">▦</span>
-              <strong>Good times start with a slot.</strong>
+              <strong>Good times start here.</strong>
               <p>
-                Click a slot on the schedule. Choose multiple hours at the same
-                table, or bring more friends by choosing multiple tables.
+                Select a one-hour block in the schedule. Adjacent blocks on
+                the same table appear together as one session.
               </p>
             </div>
           ) : (
             <>
-              <div className={styles.selectionCount} aria-live="polite">
-                {tableCount} tables <span>·</span> {selected.length} table-hours{" "}
+              <div className={styles.selectionCount}>
+                {tableCount} tables <span>·</span> {totalHours} table-hours{" "}
                 <button type="button" onClick={clearSelection}>
                   Clear all
                 </button>
               </div>
-              {(!durationValid || durationError) && (
-                <p role="alert" className={styles.durationError}>
-                  {durationError || "A session exceeds the 10-hour limit. Remove it and select up to 10 contiguous hours."}
-                </p>
-              )}
               {hasExpiredSelection && (
-                <p role="alert" className={styles.durationError}>
-                  A selected slot has passed. Clear or remove it before continuing.
+                <p role="alert" className={styles.selectionError}>
+                  A selected session has already started. Remove it before continuing.
                 </p>
               )}
               <ul className={styles.sessionList}>
@@ -346,8 +339,8 @@ export default function BookingSchedule({
           <div className={styles.priceExplanation}>
             {outlet.pricingMode === "happy_hour" && outlet.happyHour ? (
               <>
-                Happy hour applies per one-hour slot on {outlet.happyHour.days.map((day) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day - 1]).join(", ")}, from {String(outlet.happyHour.startHour).padStart(2, "0")}:00 to {String(outlet.happyHour.endHour % 24).padStart(2, "0")}:00. Each slot outside those calendar weekdays and hours uses the base rate.
-                <small>After midnight, the next calendar day&apos;s weekday applies. The estimate sums each slot and each table session.</small>
+                Happy hour applies to each one-hour block that starts on {outlet.happyHour.days.map((day) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day - 1]).join(", ")} between {String(outlet.happyHour.startHour).padStart(2, "0")}:00 and {String(outlet.happyHour.endHour % 24).padStart(2, "0")}:00 (end time excluded). Other blocks use the base rate.
+                <small>After midnight, the next calendar day&apos;s weekday applies. The estimate sums each block and each table session.</small>
               </>
             ) : (
               <>
@@ -363,7 +356,7 @@ export default function BookingSchedule({
           <button
             className={styles.checkout}
             type="button"
-            disabled={!selected.length || !validDate || !durationValid || hasExpiredSelection}
+            disabled={!sessions.length || !validDate || hasExpiredSelection}
             onClick={() => {
               const params = new URLSearchParams({
                 outlet: outlet.name,
@@ -371,7 +364,7 @@ export default function BookingSchedule({
                 date,
                 total: String(total),
                 tables: String(tableCount),
-                hours: String(selected.length),
+                hours: String(totalHours),
                 sessions: JSON.stringify(
                   sessions.map((session) => ({
                     table: nameOfTable(session.table),
@@ -404,8 +397,8 @@ export default function BookingSchedule({
         </aside>
       </div>
       <p className={styles.demoFootnote}>
-        Rates come from the backend; slot availability is checked live for the
-        selected venue and date. Selecting slots does not reserve or hold them.
+        Rates come from the backend. Availability is checked live for the
+        selected venue and date. Selecting a block does not hold it.
       </p>
     </section>
   );

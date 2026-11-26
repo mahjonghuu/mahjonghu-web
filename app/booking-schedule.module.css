@@ -239,13 +239,6 @@
   font-weight: 600;
   padding: 15px 0 12px;
 }
-.scheduleTable thead th span {
-  display: block;
-  font-size: 8px;
-  font-weight: 400;
-  color: #89947d;
-  margin-top: 4px;
-}
 .scheduleTable thead .dayBand th {
   height: 32px;
   padding: 0 12px;
@@ -258,6 +251,9 @@
 .scheduleTable thead .dayBand th:last-child {
   border-left: 2px solid #b5c9ad;
   color: #285741;
+}
+.scheduleTable .nextDayStart {
+  border-left: 2px solid #b5c9ad;
 }
 .scheduleTable thead .hourRowAfterBand th {
   top: 32px;
@@ -356,7 +352,7 @@
 .slot:disabled {
   cursor: not-allowed;
 }
-.slot:disabled:not(.booked) {
+.slot:disabled:not(.booked, .selected) {
   opacity: 0.45;
 }
 .gridFooter {
@@ -459,7 +455,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.durationError {
+.selectionError {
   color: #a25140;
   background: #fff0eb;
   padding: 10px;
@@ -701,7 +697,7 @@
 }
 @media (max-width: 850px) {
   .bookingLayout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .summary {
     position: static;

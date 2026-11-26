@@ -1,6 +1,8 @@
-/** Formats an operating-day hour, distinguishing the following calendar day. */
-export function operatingHourLabel(hour: number) {
-  return `${String(hour % 24).padStart(2, "0")}:00${hour >= 24 ? " (next day)" : ""}`;
+/** Formats a half-hour operating-day start, optionally marking the following calendar day. */
+export function operatingHourLabel(hour: number, includeNextDay = true) {
+  const hours = Math.floor(hour % 24);
+  const minutes = hour % 1 === 0 ? "00" : "30";
+  return `${String(hours).padStart(2, "0")}:${minutes}${includeNextDay && hour >= 24 ? " (next day)" : ""}`;
 }
 
 /** Converts an operating date/hour in the outlet's Jakarta timezone to an instant. */

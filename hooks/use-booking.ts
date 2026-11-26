@@ -7,7 +7,8 @@ type Slot = { table: number; hour: number };
 type BookingSession = { table: number; start: number; end: number };
 
 const BOOKING_STATE_KEY = "mahjonghu:booking-state";
-type StoredBooking = { outletId: string; date: string; selected: Slot[] };
+type StoredBooking = { outletId: string; date: string; selected: unknown };
+const MAX_SESSION_HOURS = 10;
 /** Outlet data required to query availability and calculate a booking estimate. */
 export type BookingOutlet = {
   id: string;
@@ -25,12 +26,31 @@ export type BookingOutlet = {
 };
 type AvailableTable = { tableId: string };
 
-/** Hour starts shown in operating-day order; hours >= 24 are next-day hours. */
-export const bookingHours = (outlet: BookingOutlet) =>
-  Array.from(
-    { length: outlet.closingHour + (outlet.closingHour < outlet.openingHour ? 24 : 0) - outlet.openingHour },
-    (_, index) => outlet.openingHour + index,
+/** Half-hour starts in operating-day order that fit at least one hour before closing. */
+export const bookingHours = ({ openingHour, closingHour }: BookingOutlet) =>
+  bookingStarts(openingHour, operatingClose(openingHour, closingHour));
+
+function operatingClose(openingHour: number, closingHour: number) {
+  return closingHour < openingHour ? closingHour + 24 : closingHour;
+}
+
+function bookingStarts(openingHour: number, close: number) {
+  return Array.from(
+    { length: (close - openingHour - 1) * 2 + 1 },
+    (_, index) => openingHour + index / 2,
   );
+}
+
+/** Queries the tables available for one complete interval. */
+async function availableTables(outletId: string, startsAt: Date) {
+  const query = new URLSearchParams({
+    outletId,
+    startsAt: startsAt.toISOString(),
+    durationHours: "1",
+  });
+  const tables = await apiRequest<AvailableTable[]>(`/bookings/availability?${query}`);
+  return tables.map((table) => table.tableId);
+}
 
 /** ISO weekday for a slot on the selected outlet operating date, independent of browser timezone. */
 function slotWeekday(date: string, hour: number) {
@@ -52,7 +72,7 @@ function tableLabel(table: number) {
   return `Table ${String(table).padStart(2, "0")}`;
 }
 
-/** Combines adjacent selected hours on a table into one session. */
+/** Combines adjacent selections on the same table for pricing and checkout. */
 function sessionsFor(slots: Slot[]): BookingSession[] {
   const sorted = [...slots].sort(
     (a, b) => a.table - b.table || a.hour - b.hour,
@@ -61,7 +81,7 @@ function sessionsFor(slots: Slot[]): BookingSession[] {
   for (const slot of sorted) {
     const previous = sessions.at(-1);
     if (previous?.table === slot.table && previous.end === slot.hour) {
-      previous.end += 1;
+      previous.end++;
     } else {
       sessions.push({
         table: slot.table,
@@ -73,21 +93,78 @@ function sessionsFor(slots: Slot[]): BookingSession[] {
   return sessions;
 }
 
+/** Accepts a non-overlapping interval only if its merged session fits the limit. */
+function canAddInterval(
+  table: number,
+  start: number,
+  end: number,
+  sessions: BookingSession[],
+  isHourAvailable?: (hour: number) => boolean,
+) {
+  let mergedStart = start;
+  let mergedEnd = end;
+  for (const session of sessions) {
+    if (session.table !== table) continue;
+    if (session.start < end && start < session.end) return false;
+    if (session.end === start) mergedStart = session.start;
+    if (session.start === end) mergedEnd = session.end;
+  }
+  if (mergedEnd - mergedStart > MAX_SESSION_HOURS) return false;
+  // Contiguous one-hour checks cover the entire merged interval without gaps.
+  if (isHourAvailable) {
+    for (let hour = mergedStart; hour < mergedEnd; hour++) {
+      if (!isHourAvailable(hour)) return false;
+    }
+  }
+  return true;
+}
+
+/** Restores both one-hour blocks and whole-hour intervals from the former duration picker. */
+function restoreSelection(stored: unknown, tables: number, openingHour: number, close: number) {
+  const selected: Slot[] = [];
+  if (!Array.isArray(stored)) return selected;
+  for (const entry of stored) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const { table, hour, durationHours = 1 } = entry as Partial<Slot & { durationHours: number }>;
+    if (
+      typeof table !== "number" || !Number.isInteger(table) || table < 1 || table > tables ||
+      typeof hour !== "number" || !Number.isInteger(hour * 2) || hour < openingHour ||
+      !Number.isInteger(durationHours) || durationHours < 1
+    ) continue;
+    const end = hour + durationHours;
+    if (end > close || !canAddInterval(table, hour, end, sessionsFor(selected))) continue;
+    for (let start = hour; start < end; start++) selected.push({ table, hour: start });
+  }
+  return selected;
+}
+
 /** Owns the selected booking date, live availability, slot selection, and estimate. Does not create a booking hold. */
 export function useBooking(outlet: BookingOutlet) {
+  const { id: outletId, openingHour, closingHour, tables } = outlet;
+  const close = operatingClose(openingHour, closingHour);
+  const [selectionOutlet, setSelectionOutlet] = useState(outletId);
   const [date, setDate] = useState("");
   const [selected, setSelected] = useState<Slot[]>([]);
-  const [durationError, setDurationError] = useState("");
   const [restored, setRestored] = useState(false);
+  if (selectionOutlet !== outletId) {
+    setSelectionOutlet(outletId);
+    setDate("");
+    setSelected([]);
+    setRestored(true);
+  }
+
   useEffect(() => {
+    if (restored) return;
     const timer = window.setTimeout(() => {
       try {
         const stored = JSON.parse(
           sessionStorage.getItem(BOOKING_STATE_KEY) ?? "null",
         ) as StoredBooking | null;
-        if (stored?.outletId === outlet.id) {
+        if (stored?.outletId === outletId && typeof stored.date === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(stored.date) &&
+            Number.isFinite(operatingHourDate(stored.date, 0).getTime())) {
           setDate(stored.date);
-          setSelected(stored.selected);
+          setSelected(restoreSelection(stored.selected, tables, openingHour, close));
         }
       } catch {
         sessionStorage.removeItem(BOOKING_STATE_KEY);
@@ -95,16 +172,15 @@ export function useBooking(outlet: BookingOutlet) {
       setRestored(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [outlet.id]);
+  }, [outletId, tables, openingHour, close, restored]);
 
   useEffect(() => {
     if (!restored) return;
     sessionStorage.setItem(
       BOOKING_STATE_KEY,
-      JSON.stringify({ outletId: outlet.id, date, selected }),
+      JSON.stringify({ outletId, date, selected }),
     );
-  }, [date, outlet.id, restored, selected]);
-  const [preview, setPreview] = useState(false);
+  }, [date, outletId, restored, selected]);
   const [availability, setAvailability] = useState<
     | { key: string; status: "success"; byHour: Record<number, string[]> }
     | { key: string; status: "error"; message: string }
@@ -121,7 +197,7 @@ export function useBooking(outlet: BookingOutlet) {
   const hasExpiredSelection = selected.some(
     (slot) => operatingHourDate(date, slot.hour).getTime() <= now,
   );
-  const availabilityKey = `${outlet.id}:${date}:${availabilityAttempt}`;
+  const availabilityKey = `${outletId}:${date}:${availabilityAttempt}`;
   const currentAvailability =
     availability?.key === availabilityKey ? availability : null;
   const availabilityLoading = validDate && currentAvailability === null;
@@ -139,7 +215,8 @@ export function useBooking(outlet: BookingOutlet) {
     }
     return rate;
   };
-  const sessions = sessionsFor(selected).map((session) => {
+  const selectedSessions = sessionsFor(selected);
+  const sessions = selectedSessions.map((session) => {
     const durationHours = session.end - session.start;
     if (outlet.pricingMode === "happy_hour" && outlet.happyHour) {
       const { days, startHour, endHour, rate } = outlet.happyHour;
@@ -163,9 +240,7 @@ export function useBooking(outlet: BookingOutlet) {
   });
   const tableCount = new Set(selected.map((slot) => slot.table)).size;
   const total = sessions.reduce((sum, session) => sum + session.amount, 0);
-  const durationValid = sessions.every(
-    (session) => session.end - session.start <= 10,
-  );
+  const totalHours = selected.length;
   const nameOfTable = (table: number) =>
     outlet.tableNames[table - 1] ?? tableLabel(table);
 
@@ -173,20 +248,12 @@ export function useBooking(outlet: BookingOutlet) {
     if (!validDate) return;
 
     let current = true;
+    const requestTime = Date.now();
     Promise.all(
-      bookingHours(outlet).map(async (hour) => {
+      bookingStarts(openingHour, close).map(async (hour) => {
         const startsAt = operatingHourDate(date, hour);
-        if (startsAt.getTime() <= Date.now()) return [hour, []] as const;
-
-        const query = new URLSearchParams({
-          outletId: outlet.id,
-          startsAt: startsAt.toISOString(),
-          durationHours: "1",
-        });
-        const tables = await apiRequest<AvailableTable[]>(
-          `/bookings/availability?${query}`,
-        );
-        return [hour, tables.map((table) => table.tableId)] as const;
+        if (startsAt.getTime() <= requestTime) return [hour, []] as const;
+        return [hour, await availableTables(outletId, startsAt)] as const;
       }),
     )
       .then((results) => {
@@ -209,32 +276,24 @@ export function useBooking(outlet: BookingOutlet) {
     return () => {
       current = false;
     };
-  }, [
-    date,
-    outlet.id,
-    outlet.openingHour,
-    outlet.closingHour,
-    validDate,
-    availabilityKey,
-    outlet,
-  ]);
+  }, [date, outletId, openingHour, close, validDate, availabilityKey]);
 
-  function isSlotAvailable(table: number, hour: number) {
-    return (
-      operatingHourDate(date, hour).getTime() > now &&
-      Boolean(availableByHour?.[hour]?.includes(outlet.tableIds[table - 1] ?? ""))
+  function canAddSlot(table: number, hour: number, currentSessions: BookingSession[], at: number) {
+    const tableId = outlet.tableIds[table - 1];
+    if (!validDate || !availableByHour || !tableId || hour < openingHour || hour + 1 > close) return false;
+    return canAddInterval(table, hour, hour + 1, currentSessions, (start) =>
+      Boolean(availableByHour[start]?.includes(tableId)) &&
+      operatingHourDate(date, start).getTime() > at,
     );
   }
 
-  function isSlotUnavailable(table: number, hour: number) {
-    return availableByHour !== null && !isSlotAvailable(table, hour);
+  function isSlotAvailable(table: number, hour: number) {
+    return canAddSlot(table, hour, selectedSessions, now);
   }
 
   function changeDate(value: string) {
     setDate(value);
     setSelected([]);
-    setPreview(false);
-    setDurationError("");
   }
 
   function selectNearestDate() {
@@ -244,38 +303,17 @@ export function useBooking(outlet: BookingOutlet) {
   }
 
   function toggleSlot(table: number, hour: number) {
-    if (!validDate || !isSlotAvailable(table, hour)) return;
-    const alreadySelected = selected.some(
-      (slot) => slot.table === table && slot.hour === hour,
-    );
-    if (
-      !alreadySelected &&
-      sessionsFor([...selected, { table, hour }]).some(
-        (session) => session.end - session.start > 10,
-      )
-    ) {
-      setDurationError(
-        "One contiguous session can be at most 10 hours. Choose another table or a separate time.",
-      );
-      return;
-    }
-    setSelected((current) =>
-      alreadySelected
-        ? current.filter((slot) => slot.table !== table || slot.hour !== hour)
-        : [...current, { table, hour }],
-    );
-    setDurationError("");
-    setPreview(false);
+    const at = Date.now();
+    setSelected((current) => {
+      const matches = (slot: Slot) => slot.table === table && slot.hour === hour;
+      if (current.some(matches)) return current.filter((slot) => !matches(slot));
+      if (!canAddSlot(table, hour, sessionsFor(current), at)) return current;
+      return [...current, { table, hour }];
+    });
   }
 
   function clearSelection() {
     setSelected([]);
-    setPreview(false);
-    setDurationError("");
-  }
-
-  function showPreview() {
-    setPreview(true);
   }
 
   function retryAvailability() {
@@ -290,20 +328,16 @@ export function useBooking(outlet: BookingOutlet) {
           slot.hour >= session.end,
       ),
     );
-    setPreview(false);
-    setDurationError("");
   }
 
   return {
     date,
     selected,
-    preview,
     sessions,
     tableCount,
     total,
     validDate,
-    durationValid,
-    durationError,
+    totalHours,
     nearestDate,
     hasExpiredSelection,
     selectNearestDate,
@@ -311,12 +345,10 @@ export function useBooking(outlet: BookingOutlet) {
     availabilityError,
     nameOfTable,
     isSlotAvailable,
-    isSlotUnavailable,
-    changeDate,
     toggleSlot,
+    changeDate,
     clearSelection,
     removeSession,
-    showPreview,
     retryAvailability,
   };
 }
