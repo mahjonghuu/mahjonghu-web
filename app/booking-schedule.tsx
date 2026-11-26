@@ -38,7 +38,9 @@ export default function BookingSchedule({
     durationValid,
     durationError,
     validDate,
-    today,
+    nearestDate,
+    hasExpiredSelection,
+    selectNearestDate,
     availabilityLoading,
     availabilityError,
     nameOfTable,
@@ -90,13 +92,13 @@ export default function BookingSchedule({
           </select>
         </label>
         <label>
-          <span>02 / PLAY DATE</span>
+          <span>02 / OPERATING DATE</span>
           <input
             ref={dateInput}
-            aria-label="Play date"
+            aria-label="Operating date"
             type="date"
             required
-            min={today}
+            min={nearestDate}
             value={date}
             onChange={(event) => changeDate(event.target.value)}
           />
@@ -104,9 +106,9 @@ export default function BookingSchedule({
         <button
           className={styles.today}
           type="button"
-          onClick={() => changeDate(today)}
+          onClick={selectNearestDate}
         >
-          Today <span aria-hidden="true">↗</span>
+          Nearest schedule <span aria-hidden="true">↗</span>
         </button>
         <div className={styles.rate}>
           <span>BASE RATE / TABLE-HOUR</span>
@@ -114,8 +116,9 @@ export default function BookingSchedule({
         </div>
       </div>
       <p className={styles.contextNote}>
-        Your selection applies to one venue and operating date. Hours marked next day
-        fall on the following calendar date. Changing venue or date clears your selection.
+        Nearest schedule: {playDateFormat.format(operatingHourDate(nearestDate, 12))} ·{" "}
+        {hourLabel(outlet.openingHour)}–{hourLabel(outlet.closingHour < outlet.openingHour ? outlet.closingHour + 24 : outlet.closingHour)}.
+        Your selection applies to one venue and operating date. Changing venue or date clears your selection.
         One contiguous session per table can last up to 10 hours.
       </p>
       <div className={styles.bookingLayout}>
@@ -156,8 +159,8 @@ export default function BookingSchedule({
           {!validDate && (
             <div className={styles.dateNotice} role="status">
               {date
-                ? "Choose today or a later date to continue."
-                : "Choose a date or click Today to start selecting slots."}
+                ? "Choose the nearest operating date or a later date to continue."
+                : "Choose a date or click Nearest schedule to start selecting slots."}
               <button type="button" onClick={() => dateInput.current?.focus()}>
                 Choose a date <span aria-hidden="true">↑</span>
               </button>
@@ -183,10 +186,10 @@ export default function BookingSchedule({
                   <tr className={styles.dayBand}>
                     <th aria-hidden="true" />
                     <th scope="colgroup" colSpan={openingDayHours}>
-                      OPENING DAY
+                      {date ? playDateFormat.format(operatingHourDate(date, 12)) : "OPENING DAY"}
                     </th>
                     <th scope="colgroup" colSpan={nextDayHours}>
-                      NEXT DAY
+                      {date ? playDateFormat.format(operatingHourDate(date, 36)) : "NEXT DAY"}
                     </th>
                   </tr>
                 )}
@@ -306,6 +309,11 @@ export default function BookingSchedule({
                   {durationError || "A session exceeds the 10-hour limit. Remove it and select up to 10 contiguous hours."}
                 </p>
               )}
+              {hasExpiredSelection && (
+                <p role="alert" className={styles.durationError}>
+                  A selected slot has passed. Clear or remove it before continuing.
+                </p>
+              )}
               <ul className={styles.sessionList}>
                 {sessions.map((session) => (
                   <li key={`${session.table}-${session.start}`}>
@@ -355,7 +363,7 @@ export default function BookingSchedule({
           <button
             className={styles.checkout}
             type="button"
-            disabled={!selected.length || !validDate || !durationValid}
+            disabled={!selected.length || !validDate || !durationValid || hasExpiredSelection}
             onClick={() => {
               const params = new URLSearchParams({
                 outlet: outlet.name,

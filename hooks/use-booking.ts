@@ -39,10 +39,13 @@ function slotWeekday(date: string, hour: number) {
   return day.getUTCDay() || 7;
 }
 
-/** Current calendar date in the outlet's Jakarta timezone. */
-function today() {
-  const jakartaTime = Date.now() + 7 * 60 * 60 * 1000;
-  return new Date(jakartaTime).toISOString().slice(0, 10);
+/** Earliest operating date still open in Jakarta, including an overnight session. */
+function nearestOperatingDate(outlet: BookingOutlet, now: number) {
+  const jakartaTime = new Date(now + 7 * 60 * 60 * 1000);
+  if (outlet.closingHour < outlet.openingHour && jakartaTime.getUTCHours() < outlet.closingHour) {
+    jakartaTime.setUTCDate(jakartaTime.getUTCDate() - 1);
+  }
+  return jakartaTime.toISOString().slice(0, 10);
 }
 
 function tableLabel(table: number) {
@@ -108,8 +111,16 @@ export function useBooking(outlet: BookingOutlet) {
     | null
   >(null);
   const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
-  const todayDate = today();
-  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= todayDate;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const nearestDate = nearestOperatingDate(outlet, now);
+  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= nearestDate;
+  const hasExpiredSelection = selected.some(
+    (slot) => operatingHourDate(date, slot.hour).getTime() <= now,
+  );
   const availabilityKey = `${outlet.id}:${date}:${availabilityAttempt}`;
   const currentAvailability =
     availability?.key === availabilityKey ? availability : null;
@@ -209,8 +220,9 @@ export function useBooking(outlet: BookingOutlet) {
   ]);
 
   function isSlotAvailable(table: number, hour: number) {
-    return Boolean(
-      availableByHour?.[hour]?.includes(outlet.tableIds[table - 1] ?? ""),
+    return (
+      operatingHourDate(date, hour).getTime() > now &&
+      Boolean(availableByHour?.[hour]?.includes(outlet.tableIds[table - 1] ?? ""))
     );
   }
 
@@ -223,6 +235,12 @@ export function useBooking(outlet: BookingOutlet) {
     setSelected([]);
     setPreview(false);
     setDurationError("");
+  }
+
+  function selectNearestDate() {
+    const currentTime = Date.now();
+    setNow(currentTime);
+    changeDate(nearestOperatingDate(outlet, currentTime));
   }
 
   function toggleSlot(table: number, hour: number) {
@@ -286,7 +304,9 @@ export function useBooking(outlet: BookingOutlet) {
     validDate,
     durationValid,
     durationError,
-    today: todayDate,
+    nearestDate,
+    hasExpiredSelection,
+    selectNearestDate,
     availabilityLoading,
     availabilityError,
     nameOfTable,
